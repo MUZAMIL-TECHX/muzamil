@@ -116,7 +116,7 @@ async function kickCommand(sock, chatId, senderId, mentionedJids, message) {
         }));
         
         await sock.sendMessage(chatId, { 
-            text: `${usernames.join(', ')} has been kicked successfully!`,
+            text: `${usernames.join(', ')} has been kicked successfully! By Muzamil-XD..!`,
             mentions: usersToKick
         });
     } catch (error) {
