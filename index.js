@@ -46,6 +46,12 @@ const { PHONENUMBER_MCC } = require('@whiskeysockets/baileys/lib/Utils/generics'
 const { rmSync, existsSync } = require('fs')
 const { join } = require('path')
 
+const APP_ROOT = __dirname
+const SESSION_DIR = path.resolve(process.env.SESSION_DIR || join(APP_ROOT, 'session'))
+const DATA_DIR = join(APP_ROOT, 'data')
+fs.mkdirSync(DATA_DIR, { recursive: true })
+fs.mkdirSync(SESSION_DIR, { recursive: true })
+
 // Import lightweight store
 const store = require('./lib/lightweight_store')
 
@@ -72,7 +78,7 @@ setInterval(() => {
 }, 30_000) // check every 30 seconds
 
 let phoneNumber = process.env.PHONE_NUMBER || ""
-let owner = JSON.parse(fs.readFileSync('./data/owner.json'))
+let owner = JSON.parse(fs.readFileSync(join(DATA_DIR, 'owner.json')))
 
 global.botname = "KNIGHT BOT"
 global.themeemoji = "•"
@@ -81,6 +87,8 @@ global.botImageUrl = "https://raw.githubusercontent.com/mruniquehacker/Knightbot
 const useMobile = process.argv.includes("--mobile")
 let currentSocket = null
 let pairingLock = null
+let reconnectTimer = null
+let pairingServer = null
 
 // Only create readline interface if we're in an interactive environment
 const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin, output: process.stdout }) : null
@@ -104,7 +112,7 @@ async function startXeonBotInc(requestedPhoneNumber = '') {
             process.argv.includes("--pairing-code")
         )
         let { version, isLatest } = await fetchLatestBaileysVersion()
-        const { state, saveCreds } = await useMultiFileAuthState(`./session`)
+        const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR)
         const msgRetryCounterCache = new NodeCache()
 
         const XeonBotInc = makeWASocket({
@@ -311,12 +319,14 @@ async function startXeonBotInc(requestedPhoneNumber = '') {
         if (connection === 'close') {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
             const statusCode = lastDisconnect?.error?.output?.statusCode
+            if (currentSocket === XeonBotInc) currentSocket = null
             
             console.log(chalk.red(`Connection closed due to ${lastDisconnect?.error}, reconnecting ${shouldReconnect}`))
             
             if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
                 try {
-                    rmSync('./session', { recursive: true, force: true })
+                    rmSync(SESSION_DIR, { recursive: true, force: true })
+                    fs.mkdirSync(SESSION_DIR, { recursive: true })
                     console.log(chalk.yellow('Session folder deleted. Please re-authenticate.'))
                 } catch (error) {
                     console.error('Error deleting session:', error)
@@ -326,8 +336,14 @@ async function startXeonBotInc(requestedPhoneNumber = '') {
             
             if (shouldReconnect) {
                 console.log(chalk.yellow('Reconnecting...'))
-                await delay(5000)
-                startXeonBotInc()
+                if (!reconnectTimer) {
+                    reconnectTimer = setTimeout(() => {
+                        reconnectTimer = null
+                        startXeonBotInc().catch((error) => {
+                            console.error('Reconnect attempt failed:', error)
+                        })
+                    }, 5000)
+                }
             }
         }
     })
@@ -392,8 +408,15 @@ async function startXeonBotInc(requestedPhoneNumber = '') {
     return XeonBotInc
     } catch (error) {
         console.error('Error in startXeonBotInc:', error)
-        await delay(5000)
-        startXeonBotInc()
+        if (!reconnectTimer) {
+            reconnectTimer = setTimeout(() => {
+                reconnectTimer = null
+                startXeonBotInc().catch((retryError) => {
+                    console.error('Retry attempt failed:', retryError)
+                })
+            }, 5000)
+        }
+        return null
     }
 }
 
@@ -451,7 +474,7 @@ function startPairingServer() {
     app.get('/status', (_req, res) => res.json({
         connected: Boolean(currentSocket?.authState?.creds?.registered),
         number: currentSocket?.user?.id?.split(':')[0] || null,
-        hasSession: existsSync(join(process.cwd(), 'session', 'creds.json'))
+        hasSession: existsSync(join(SESSION_DIR, 'creds.json'))
     }))
     app.get('/code', async (req, res) => {
         try {
@@ -462,7 +485,7 @@ function startPairingServer() {
         }
     })
 
-    app.listen(port, '0.0.0.0', () => {
+    pairingServer = app.listen(port, '0.0.0.0', () => {
         console.log(chalk.green(`Pairing site running on port ${port}`))
     })
 }
@@ -482,6 +505,21 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (err) => {
     console.error('Unhandled Rejection:', err)
 })
+
+async function shutdown(signal) {
+    console.log(`${signal} received; shutting down cleanly`)
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    if (pairingServer) pairingServer.close()
+    try {
+        await currentSocket?.ws?.close()
+    } catch (error) {
+        console.error('Error while closing WhatsApp connection:', error.message)
+    }
+    process.exit(0)
+}
+
+process.once('SIGTERM', () => shutdown('SIGTERM'))
+process.once('SIGINT', () => shutdown('SIGINT'))
 
 let file = require.resolve(__filename)
 fs.watchFile(file, () => {

@@ -79,13 +79,24 @@ npm install
 npm start
 ```
 
-Open the port shown by your hosting panel, enter your WhatsApp number with country code
-(without `+` or spaces), and select **GET KNIGHT PAIR CODE**. In WhatsApp, open
-**Linked Devices → Link a Device**, then enter the displayed code. The `session` folder
-is saved automatically, so the bot reconnects on the next restart without uploading
-`creds.json` manually.
+Railway uses Node.js 20+ for this project. The included `railway.json`, `nixpacks.toml`,
+and `.nvmrc` select a compatible runtime automatically. Open the deployed service URL,
+enter your WhatsApp number with country code (without `+` or spaces), and select
+**GET KNIGHT PAIR CODE**. In WhatsApp, open **Linked Devices → Link a Device**, then
+enter the displayed code.
+
+The bot stores credentials in `session/`. For persistence across Railway redeploys or
+restarts, attach a Railway Volume mounted at `/app/session` and set `SESSION_DIR=/app/session`.
+Without a persistent volume, pairing must be repeated after the service filesystem is reset.
 
 The JSON endpoints are also available at `/health`, `/status`, and `/code?number=...`.
+The service listens on Railway's `PORT` environment variable.
+
+Optional environment variables:
+
+- `OWNER_NUMBER` — owner number with country code, without `+` or spaces.
+- `PHONE_NUMBER` — automatically request a pairing code on startup.
+- `GIPHY_API_KEY` and other API keys — enable optional API-powered commands.
 
 ### Existing session behavior
 
