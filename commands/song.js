@@ -82,7 +82,6 @@ async function getOkatsuDownloadByUrl(youtubeUrl) {
 
 async function songCommand(sock, chatId, message) {
     try {
-        // 🔄 Processing reaction
         await addReaction(sock, message, '🔄');
 
         const text = message.message?.conversation || message.message?.extendedTextMessage?.text || '';
@@ -90,12 +89,14 @@ async function songCommand(sock, chatId, message) {
         if (!text) {
             await addReaction(sock, message, '❌');
             await sock.sendMessage(chatId, { 
-                text: `🎵 *Song Downloader*\n\n` +
-                      `Usage:\n` +
-                      `.song [song name / link]\n\n` +
-                      `Example:\n` +
-                      `.song Atif Aslam\n` +
-                      `.song https://youtu.be/xxxxx`
+                text: `
+╭━━━〔 🎵 *SONG DOWNLOADER* 〕━━━┈⊷
+┃ ❍ Usage : .song [name/link]
+┃ ❍ Example 1 : .song Atif Aslam
+┃ ❍ Example 2 : .song https://youtu.be/xxxxx
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
             }, { quoted: message });
             return;
         }
@@ -108,29 +109,30 @@ async function songCommand(sock, chatId, message) {
             if (!search || !search.videos.length) {
                 await addReaction(sock, message, '❌');
                 await sock.sendMessage(chatId, { 
-                    text: `❌ *No Results Found*\n\n` +
-                          `No songs found for: *${text}*`
+                    text: `
+╭━━━〔 ❌ *NO SONGS FOUND* 〕━━━┈⊷
+┃ ❍ No results for: ${text}
+┃ ❍ Try different keywords
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
                 }, { quoted: message });
                 return;
             }
             video = search.videos[0];
         }
 
-        // Send thumbnail with styled message
-        const styledCaption = `
-╔══════════════════════════════╗
-║        🎵 𝗦𝗼𝗻𝗴 𝗙𝗼𝘂𝗻𝗱
-╠══════════════════════════════╣
-║ 📌 𝗧𝗶𝘁𝗹𝗲 : ${video.title.substring(0, 35)}${video.title.length > 35 ? '...' : ''}
-║ ⏱️ 𝗗𝘂𝗿𝗮𝘁𝗶𝗼𝗻 : ${video.timestamp || 'Unknown'}
-║ ⏳ 𝗦𝘁𝗮𝘁𝘂𝘀 : Downloading...
-╚══════════════════════════════╝
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-     𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝗨𝗭𝗔𝗠𝗜𝗟-𝗫𝗗`;
-
+        // Send thumbnail
         await sock.sendMessage(chatId, {
             image: { url: video.thumbnail },
-            caption: styledCaption
+            caption: `
+╭━━━〔 🎵 *SONG FOUND* 〕━━━┈⊷
+┃ ❍ Title : ${video.title.substring(0, 30)}${video.title.length > 30 ? '...' : ''}
+┃ ❍ Duration : ${video.timestamp || 'Unknown'}
+┃ ❍ Status : Downloading...
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
         }, { quoted: message });
 
         // Try multiple APIs
@@ -224,7 +226,16 @@ async function songCommand(sock, chatId, message) {
         
         if (!downloadSuccess || !audioBuffer) {
             await addReaction(sock, message, '❌');
-            throw new Error('All download sources failed.');
+            await sock.sendMessage(chatId, { 
+                text: `
+╭━━━〔 ❌ *DOWNLOAD FAILED* 〕━━━┈⊷
+┃ ❍ All sources failed
+┃ ❍ Try again later
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+            }, { quoted: message });
+            return;
         }
 
         if (!audioBuffer || audioBuffer.length === 0) {
@@ -276,26 +287,21 @@ async function songCommand(sock, chatId, message) {
             }
         }
 
-        // Send audio with styled caption
-        const audioCaption = `
-╔══════════════════════════════╗
-║        🎵 𝗦𝗼𝗻𝗴 𝗥𝗲𝗮𝗱𝘆!
-╠══════════════════════════════╣
-║ 📌 ${(audioData.title || video.title || 'Song').substring(0, 35)}${(audioData.title || video.title || 'Song').length > 35 ? '...' : ''}
-║ ✅ 𝗦𝘁𝗮𝘁𝘂𝘀 : Downloaded
-╚══════════════════════════════╝
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-     𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝗨𝗭𝗔𝗠𝗜𝗟-𝗫𝗗`;
-
+        // Send audio
         await sock.sendMessage(chatId, {
             audio: finalBuffer,
             mimetype: 'audio/mpeg',
             fileName: `${(audioData.title || video.title || 'song').replace(/[^\w\s-]/g, '')}.${finalExtension}`,
             ptt: false,
-            caption: audioCaption
+            caption: `
+╭━━━〔 ✅ *SONG READY* 〕━━━┈⊷
+┃ ❍ Title : ${(audioData.title || video.title || 'Song').substring(0, 30)}${(audioData.title || video.title || 'Song').length > 30 ? '...' : ''}
+┃ ❍ Status : Downloaded ✅
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
         }, { quoted: message });
 
-        // ✅ Done reaction
         await addReaction(sock, message, '✅');
 
         // Cleanup temp files
@@ -322,19 +328,20 @@ async function songCommand(sock, chatId, message) {
         console.error('Song command error:', err);
         await addReaction(sock, message, '❌');
         
-        let errorMessage = `❌ *Failed to download song.*\n\n`;
-        if (err.message && err.message.includes('blocked')) {
-            errorMessage += `🔴 Content may be unavailable in your region.`;
-        } else if (err.response?.status === 451 || err.status === 451) {
-            errorMessage += `🔴 Content unavailable (451). Legal restrictions.`;
-        } else if (err.message && err.message.includes('All download sources failed')) {
-            errorMessage += `🔴 All download sources failed. Try again later.`;
-        } else {
-            errorMessage += `🔴 ${err.message || 'Unknown error'}`;
-        }
+        let errorMsg = 'Unknown error';
+        if (err.message && err.message.includes('blocked')) errorMsg = 'Content blocked in your region.';
+        else if (err.response?.status === 451) errorMsg = 'Content unavailable (451).';
+        else if (err.message && err.message.includes('All download sources failed')) errorMsg = 'All sources failed. Try again.';
+        else errorMsg = err.message || 'Unknown error';
         
         await sock.sendMessage(chatId, { 
-            text: errorMessage
+            text: `
+╭━━━〔 ❌ *ERROR* 〕━━━┈⊷
+┃ ❍ ${errorMsg}
+┃ ❍ Please try again later
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
         }, { quoted: message });
     }
 }
