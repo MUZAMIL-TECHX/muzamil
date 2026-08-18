@@ -1,4 +1,3 @@
-const os = require('os');
 const settings = require('../settings.js');
 
 function formatTime(seconds) {
@@ -18,29 +17,60 @@ function formatTime(seconds) {
     return time.trim();
 }
 
+async function addReaction(sock, message, emoji) {
+    try {
+        await sock.sendMessage(message.key.remoteJid, {
+            react: {
+                text: emoji,
+                key: message.key
+            }
+        });
+    } catch (error) {}
+}
+
 async function pingCommand(sock, chatId, message) {
     try {
+        await addReaction(sock, message, '🏓');
+
         const start = Date.now();
-        await sock.sendMessage(chatId, { text: 'Pong!' }, { quoted: message });
+        const pingMsg = await sock.sendMessage(chatId, { 
+            text: '🏓 *Pinging...*' 
+        }, { quoted: message });
+        
         const end = Date.now();
         const ping = Math.round((end - start) / 2);
+        const uptimeFormatted = formatTime(process.uptime());
 
-        const uptimeInSeconds = process.uptime();
-        const uptimeFormatted = formatTime(uptimeInSeconds);
-
+        // SIRF 3 LINES
         const botInfo = `
-┏━━〔 *🤖 MUZAMIL-XD* 〕━━┓
-┃ 🚀 Ping     : ${ping} ms
-┃ ⏱️ Uptime   : ${uptimeFormatted}
-┃ 🔖 Version  : v${settings.version}
-┗━━━━━━━━━━━━━━━━━━━┛`.trim();
+┏━━━━━━━━━━━━━━━━━━━┓
+┃ 🏓 𝗣𝗶𝗻𝗴   : ${ping} ms
+┃ ⏱️ 𝗨𝗽𝘁𝗶𝗺𝗲 : ${uptimeFormatted}
+┃ 🔖 𝗩𝗲𝗿    : v${settings.version}
+┗━━━━━━━━━━━━━━━━━━━┛
+     𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝗨𝗭𝗔𝗠𝗜𝗟-𝗫𝗗`;
 
-        // Reply to the original message with the bot info
-        await sock.sendMessage(chatId, { text: botInfo},{ quoted: message });
+        try {
+            await sock.sendMessage(chatId, {
+                delete: { 
+                    remoteJid: chatId, 
+                    fromMe: true, 
+                    id: pingMsg.key.id 
+                }
+            });
+        } catch (e) {}
+
+        await sock.sendMessage(chatId, { 
+            text: botInfo 
+        }, { quoted: message });
+
+        await addReaction(sock, message, '✅');
 
     } catch (error) {
-        console.error('Error in ping command:', error);
-        await sock.sendMessage(chatId, { text: '❌ Failed to get bot status.' });
+        await addReaction(sock, message, '❌');
+        await sock.sendMessage(chatId, { 
+            text: `❌ Error: ${error.message || 'Unknown'}` 
+        }, { quoted: message });
     }
 }
 
