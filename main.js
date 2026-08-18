@@ -40,6 +40,7 @@ const { autotypingCommand, isAutotypingEnabled, handleAutotypingForMessage, hand
 const { autoreadCommand, isAutoreadEnabled, handleAutoread } = require('./commands/autoread');
 
 // Command imports
+const { ytsCommand, processYtsReply } = require('./commands/yts');
 const simdataCommand = require('./commands/simdata');
 const truecallerCommand = require('./commands/truecaller');
 const apkCommand = require('./commands/apk');
@@ -631,6 +632,10 @@ async function handleMessages(sock, messageUpdate, printLog) {
             case userMessage.startsWith('.hangman'):
                 startHangman(sock, chatId);
                 break;
+            case userMessage.startsWith('.yts'):
+                await ytsCommand(sock, chatId, message);
+                commandExecuted = true;
+               break;
             case userMessage.startsWith('.guess'):
                 const guessedLetter = userMessage.split(' ')[1];
                 if (guessedLetter) {
