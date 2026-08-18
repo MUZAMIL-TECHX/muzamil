@@ -233,6 +233,10 @@ async function handleMessages(sock, messageUpdate, printLog) {
             message.message?.videoMessage?.caption?.trim() ||
             '';
 
+        // Handle YTS replies
+        const isYtsReply = await processYtsReply(sock, chatId, message);
+        if (isYtsReply) return;
+
         // Only log command usage
         if (userMessage.startsWith('.')) {
             console.log(`📝 Command used in ${isGroup ? 'group' : 'private'}: ${userMessage}`);
