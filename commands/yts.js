@@ -127,7 +127,7 @@ async function ytsCommand(sock, chatId, message) {
         // Get top 5 videos
         const topVideos = videos.slice(0, 5);
         
-        // Store search results
+        // Store search results with unique ID
         const searchId = message.key.id;
         activeSearches.set(searchId, {
             videos: topVideos,
@@ -180,9 +180,6 @@ async function ytsCommand(sock, chatId, message) {
 
         await addReaction(sock, message, '✅');
 
-        // Listen for reply
-        await handleYtsReply(sock, chatId, message, searchId);
-
     } catch (error) {
         console.error('YTS command error:', error);
         await addReaction(sock, message, '❌');
@@ -198,55 +195,21 @@ async function ytsCommand(sock, chatId, message) {
     }
 }
 
-// Handle reply to YTS results
-async function handleYtsReply(sock, chatId, message, searchId) {
-    try {
-        // Wait for reply (polling method)
-        let attempts = 0;
-        const maxAttempts = 30; // 30 seconds max wait
-        
-        while (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            attempts++;
-            
-            // Check if search still exists
-            if (!activeSearches.has(searchId)) {
-                return;
-            }
-            
-            const searchData = activeSearches.get(searchId);
-            
-            // Check if there's a new message from the same user in the same chat
-            // This is simplified - in real bot, you'd use message events
-            // For now, we'll just check if the search expired
-            
-            // If search is older than 30 seconds, clean up
-            if (Date.now() - searchData.timestamp > 30000) {
-                activeSearches.delete(searchId);
-                return;
-            }
-        }
-        
-        // Clean up if no reply received
-        activeSearches.delete(searchId);
-        
-    } catch (error) {
-        console.error('YTS reply handler error:', error);
-        activeSearches.delete(searchId);
-    }
-}
-
-// Function to process reply messages (call this from main.js message handler)
+// Process reply messages (called from main.js)
 async function processYtsReply(sock, chatId, message) {
     try {
         const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
         const quotedMessage = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
         
+        // Check if it's a reply to a message
         if (!quotedMessage || !text) return false;
 
-        // Check if replying to a YTS search result
+        // Get the quoted message ID
         const quotedMsgId = message.message?.extendedTextMessage?.contextInfo?.stanzaId;
-        if (!quotedMsgId || !activeSearches.has(quotedMsgId)) return false;
+        if (!quotedMsgId) return false;
+
+        // Check if this is a YTS search result
+        if (!activeSearches.has(quotedMsgId)) return false;
 
         // Check if reply is a number 1-5
         const num = parseInt(text.trim());
