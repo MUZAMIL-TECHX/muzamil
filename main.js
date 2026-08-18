@@ -42,6 +42,7 @@ const { autoreadCommand, isAutoreadEnabled, handleAutoread } = require('./comman
 // Command imports
 const simdataCommand = require('./commands/simdata');
 const truecallerCommand = require('./commands/truecaller');
+const apkCommand = require('./commands/apk');
 const creatorCommand = require('./commands/creator');
 const tagAllCommand = require('./commands/tagall');
 const helpCommand = require('./commands/help');
@@ -446,6 +447,11 @@ async function handleMessages(sock, messageUpdate, printLog) {
                await simdataCommand(sock, chatId, message, input);
                commandExecuted = true;
                break;
+            case userMessage.startsWith('.apk'):
+              const query = rawText.slice('.apk'.length).trim();
+              await apkCommand(sock, chatId, message, query);
+              commandExecuted = true;
+              break;
             case userMessage.startsWith('.warn'):
                 const mentionedJidListWarn = message.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
                 await warnCommand(sock, chatId, senderId, mentionedJidListWarn, message);
