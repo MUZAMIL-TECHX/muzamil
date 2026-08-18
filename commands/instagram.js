@@ -3,6 +3,19 @@ const { igdl } = require("ruhend-scraper");
 // Store processed message IDs to prevent duplicates
 const processedMessages = new Set();
 
+async function addReaction(sock, message, emoji) {
+    try {
+        await sock.sendMessage(message.key.remoteJid, {
+            react: {
+                text: emoji,
+                key: message.key
+            }
+        });
+    } catch (error) {
+        console.error('Reaction error:', error);
+    }
+}
+
 // Function to extract unique media URLs with simple deduplication
 function extractUniqueMedia(mediaData) {
     const uniqueMedia = [];
@@ -11,7 +24,6 @@ function extractUniqueMedia(mediaData) {
     for (const media of mediaData) {
         if (!media.url) continue;
         
-        // Only check for exact URL duplicates
         if (!seenUrls.has(media.url)) {
             seenUrls.add(media.url);
             uniqueMedia.push(media);
@@ -19,16 +31,6 @@ function extractUniqueMedia(mediaData) {
     }
     
     return uniqueMedia;
-}
-
-// Function to validate media URL
-function isValidMediaUrl(url) {
-    if (!url || typeof url !== 'string') return false;
-    
-    // Accept any URL that looks like media
-    return url.includes('cdninstagram.com') || 
-           url.includes('instagram') || 
-           url.includes('http');
 }
 
 async function instagramCommand(sock, chatId, message) {
@@ -49,9 +51,14 @@ async function instagramCommand(sock, chatId, message) {
         const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
         
         if (!text) {
+            await addReaction(sock, message, '❌');
             return await sock.sendMessage(chatId, { 
-                text: "Please provide an Instagram link for the video."
-            });
+                text: `📸 *Instagram Downloader*\n\n` +
+                      `Usage:\n` +
+                      `.instagram [link]\n\n` +
+                      `Example:\n` +
+                      `.instagram https://www.instagram.com/p/xxxxx`
+            }, { quoted: message });
         }
 
         // Check for various Instagram URL formats
@@ -66,44 +73,57 @@ async function instagramCommand(sock, chatId, message) {
         const isValidUrl = instagramPatterns.some(pattern => pattern.test(text));
         
         if (!isValidUrl) {
+            await addReaction(sock, message, '❌');
             return await sock.sendMessage(chatId, { 
-                text: "That is not a valid Instagram link. Please provide a valid Instagram post, reel, or video link."
-            });
+                text: `❌ *Invalid Link*\n\n` +
+                      `Please provide a valid Instagram link.\n\n` +
+                      `✅ Valid formats:\n` +
+                      `• instagram.com/p/xxxxx\n` +
+                      `• instagram.com/reel/xxxxx\n` +
+                      `• instagram.com/tv/xxxxx`
+            }, { quoted: message });
         }
 
-        await sock.sendMessage(chatId, {
-            react: { text: '🔄', key: message.key }
-        });
+        // 🔄 Processing reaction
+        await addReaction(sock, message, '🔄');
 
         const downloadData = await igdl(text);
         
         if (!downloadData || !downloadData.data || downloadData.data.length === 0) {
+            await addReaction(sock, message, '❌');
             return await sock.sendMessage(chatId, { 
-                text: "❌ No media found at the provided link. The post might be private or the link is invalid."
-            });
+                text: `❌ *No Media Found*\n\n` +
+                      `The post might be private or the link is invalid.\n\n` +
+                      `💡 Try:\n` +
+                      `• Check if post is public\n` +
+                      `• Try a different link`
+            }, { quoted: message });
         }
 
         const mediaData = downloadData.data;
-        
-        // Simple deduplication - just remove exact URL duplicates
         const uniqueMedia = extractUniqueMedia(mediaData);
-        
-        // Limit to maximum 20 unique media items
         const mediaToDownload = uniqueMedia.slice(0, 20);
         
         if (mediaToDownload.length === 0) {
+            await addReaction(sock, message, '❌');
             return await sock.sendMessage(chatId, { 
-                text: "❌ No valid media found to download. This might be a private post or the scraper failed."
-            });
+                text: `❌ *No Valid Media*\n\n` +
+                      `No valid media found to download.`
+            }, { quoted: message });
         }
 
-        // Download all media silently without status messages
+        // Send count message
+        await sock.sendMessage(chatId, { 
+            text: `📥 *Downloading ${mediaToDownload.length} media(s)...*\n\n` +
+                  `⏳ Please wait...`
+        }, { quoted: message });
+
+        // Download all media
         for (let i = 0; i < mediaToDownload.length; i++) {
             try {
                 const media = mediaToDownload[i];
                 const mediaUrl = media.url;
 
-                // Check if URL ends with common video extensions
                 const isVideo = /\.(mp4|mov|avi|mkv|webm)$/i.test(mediaUrl) || 
                               media.type === 'video' || 
                               text.includes('/reel/') || 
@@ -113,16 +133,22 @@ async function instagramCommand(sock, chatId, message) {
                     await sock.sendMessage(chatId, {
                         video: { url: mediaUrl },
                         mimetype: "video/mp4",
-                        caption: "𝗗𝗼𝘄𝗻𝗹𝗼𝗮𝗱𝗲𝗱 𝗕𝘆 𝗠𝘂𝘇𝗮𝗺𝗶𝗹-𝗫𝗗"
+                        caption: `📹 *Media ${i + 1}/${mediaToDownload.length}*\n\n` +
+                                 `❖━━━━━━━━━━━━━━━━━━━❖\n` +
+                                 `  𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝘂𝘇𝗮𝗺𝗶𝗹-𝗫𝗗\n` +
+                                 `❖━━━━━━━━━━━━━━━━━━━❖`
                     }, { quoted: message });
                 } else {
                     await sock.sendMessage(chatId, {
                         image: { url: mediaUrl },
-                        caption: "𝗗𝗼𝘄𝗻𝗹𝗼𝗮𝗱𝗲𝗱 𝗕𝘆 𝗠𝘂𝘇𝗮𝗺𝗶𝗹-𝗫𝗗"
+                        caption: `📸 *Media ${i + 1}/${mediaToDownload.length}*\n\n` +
+                                 `❖━━━━━━━━━━━━━━━━━━━❖\n` +
+                                 `  𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝘂𝘇𝗮𝗺𝗶𝗹-𝗫𝗗\n` +
+                                 `❖━━━━━━━━━━━━━━━━━━━❖`
                     }, { quoted: message });
                 }
                 
-                // Add small delay between downloads to prevent rate limiting
+                // Add small delay between downloads
                 if (i < mediaToDownload.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
@@ -133,11 +159,17 @@ async function instagramCommand(sock, chatId, message) {
             }
         }
 
+        // ✅ Done reaction
+        await addReaction(sock, message, '✅');
+
     } catch (error) {
         console.error('Error in Instagram command:', error);
+        await addReaction(sock, message, '❌');
         await sock.sendMessage(chatId, { 
-            text: "❌ An error occurred while processing the Instagram request. Please try again."
-        });
+            text: `❌ *Error*\n\n` +
+                  `Something went wrong. Please try again.\n\n` +
+                  `💡 ${error.message || 'Unknown error'}`
+        }, { quoted: message });
     }
 }
 
