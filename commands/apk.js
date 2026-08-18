@@ -1,7 +1,6 @@
 const axios = require('axios');
 
 async function apkCommand(sock, chatId, message, query) {
-    // Check if app name is provided
     if (!query) {
         await sock.sendMessage(
             chatId,
@@ -12,8 +11,7 @@ async function apkCommand(sock, chatId, message, query) {
                       'Example:\n' +
                       '.apk whatsapp\n' +
                       '.apk facebook\n' +
-                      '.apk instagram\n\n' +
-                      '⚠️ Enter app name to download APK'
+                      '.apk instagram'
             },
             { quoted: message }
         );
@@ -21,10 +19,8 @@ async function apkCommand(sock, chatId, message, query) {
     }
 
     try {
-        // Show typing indicator
         await sock.sendPresenceUpdate('composing', chatId);
 
-        // Search for APK on Aptoide
         const apiUrl = `http://ws75.aptoide.com/api/7/apps/search/query=${encodeURIComponent(query)}/limit=1`;
         
         console.log(`[APK] Searching: ${query}`);
@@ -39,7 +35,6 @@ async function apkCommand(sock, chatId, message, query) {
 
         const data = response.data;
 
-        // Check if any app found
         if (!data || !data.datalist || !data.datalist.list || data.datalist.list.length === 0) {
             await sock.sendMessage(
                 chatId,
@@ -51,7 +46,6 @@ async function apkCommand(sock, chatId, message, query) {
             return;
         }
 
-        // Get first app from results
         const app = data.datalist.list[0];
         const appSize = (app.size / 1048576).toFixed(2);
         const appName = app.name || query;
@@ -64,16 +58,10 @@ async function apkCommand(sock, chatId, message, query) {
             throw new Error('Download link not available');
         }
 
-        // Check file size (WhatsApp limit ~100MB)
-        if (parseFloat(appSize) > 100) {
-            await sock.sendMessage(
-                chatId,
-                {
-                    text: `⚠️ *File Too Large*\n\n📱 ${appName}\n📏 Size: ${appSize} MB\n\nCannot send files larger than 100MB on WhatsApp.`
-                },
-                { quoted: message }
-            );
-            return;
+        // Build download URL if path is relative
+        let downloadUrl = appPath;
+        if (!downloadUrl.startsWith('http')) {
+            downloadUrl = `https://ws75.aptoide.com${downloadUrl}`;
         }
 
         // Build stylish response
@@ -89,13 +77,51 @@ async function apkCommand(sock, chatId, message, query) {
         caption += `│ 📏 𝗦𝗶𝘇𝗲    : ${appSize} MB\n`;
         caption += `│ 🔄 𝗩𝗲𝗿𝘀𝗶𝗼𝗻 : ${appVersion}\n`;
         caption += `└─────────────────────┘\n\n`;
-        
+
+        // Check if file is too large for WhatsApp
+        if (parseFloat(appSize) > 95) { // 95MB to be safe
+            caption += `⚠️ *File too large for WhatsApp!*\n`;
+            caption += `📥 *Download Link:*\n${downloadUrl}\n\n`;
+            caption += `💡 Open this link in your browser to download.\n\n`;
+            caption += `❖━━━━━━━━━━━━━━━━━━━❖\n`;
+            caption += `  𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝘂𝘇𝗮𝗺𝗶𝗹-𝗫𝗗\n`;
+            caption += `❖━━━━━━━━━━━━━━━━━━━❖`;
+
+            // Send info with icon
+            if (appIcon) {
+                try {
+                    await sock.sendMessage(
+                        chatId,
+                        {
+                            image: { url: appIcon },
+                            caption: caption
+                        },
+                        { quoted: message }
+                    );
+                } catch (imgError) {
+                    await sock.sendMessage(
+                        chatId,
+                        { text: caption },
+                        { quoted: message }
+                    );
+                }
+            } else {
+                await sock.sendMessage(
+                    chatId,
+                    { text: caption },
+                    { quoted: message }
+                );
+            }
+            return;
+        }
+
+        // If file is small enough, send directly
         caption += `❖━━━━━━━━━━━━━━━━━━━❖\n`;
         caption += `      📥 𝗗𝗼𝘄𝗻𝗹𝗼𝗮𝗱𝗶𝗻𝗴...\n`;
         caption += `    𝗣𝗹𝗲𝗮𝘀𝗲 𝗪𝗮𝗶𝘁 ⏳\n`;
         caption += `❖━━━━━━━━━━━━━━━━━━━❖`;
 
-        // Send app info with icon (if available)
+        // Send app info with icon
         if (appIcon) {
             try {
                 await sock.sendMessage(
@@ -107,7 +133,6 @@ async function apkCommand(sock, chatId, message, query) {
                     { quoted: message }
                 );
             } catch (imgError) {
-                // If image fails, send text only
                 await sock.sendMessage(
                     chatId,
                     { text: caption },
@@ -126,7 +151,7 @@ async function apkCommand(sock, chatId, message, query) {
         await sock.sendMessage(
             chatId,
             {
-                document: { url: appPath },
+                document: { url: downloadUrl },
                 mimetype: "application/vnd.android.package-archive",
                 fileName: `${appName}.apk`,
                 caption: `📱 *${appName}*\n\n✅ Download Complete!\n\n❖━━━━━━━━━━━━━━━━━━━❖\n  𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝘂𝘇𝗮𝗺𝗶𝗹-𝗫𝗗\n❖━━━━━━━━━━━━━━━━━━━❖`
@@ -138,29 +163,14 @@ async function apkCommand(sock, chatId, message, query) {
 
     } catch (error) {
         console.error('[APK] Error:', error.message);
-        if (error.response) {
-            console.error('[APK] Response Status:', error.response.status);
-        }
-
+        
         let errorMessage = '❖━━━━━━━━━━━━━━━━━━━❖\n';
         errorMessage += '╔═══❖•ೋ° ❌ °ೋ•❖═══╗\n';
         errorMessage += '      𝗘𝗿𝗿𝗼𝗿 𝗢𝗰𝗰𝘂𝗿𝗿𝗲𝗱\n';
         errorMessage += '╚═══❖•ೋ° ❌ °ೋ•❖═══╝\n';
         errorMessage += '❖━━━━━━━━━━━━━━━━━━━❖\n\n';
-
-        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-            errorMessage += '⏰ Request timed out.\nTry again.';
-        } else if (error.response) {
-            errorMessage += `⚠️ API Error ${error.response.status}\nTry again later.`;
-        } else if (error.message.includes('ENOTFOUND')) {
-            errorMessage += '🌐 No internet connection.\nCheck your network.';
-        } else if (error.message.includes('Download link not available')) {
-            errorMessage += '🔴 Download link not available for this app.';
-        } else {
-            errorMessage += '🔴 ' + (error.message || 'Something went wrong.\nPlease try again.');
-        }
-
-        errorMessage += '\n\n💡 Try:\n.apk whatsapp\n.apk facebook\n.apk instagram';
+        errorMessage += '🔴 ' + (error.message || 'Something went wrong.\nPlease try again.');
+        errorMessage += '\n\n💡 Try:\n.apk whatsapp\n.apk facebook';
         errorMessage += '\n\n❖━━━━━━━━━━━━━━━━━━━❖\n';
         errorMessage += '  𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝘂𝘇𝗮𝗺𝗶𝗹-𝗫𝗗\n';
         errorMessage += '❖━━━━━━━━━━━━━━━━━━━❖';
