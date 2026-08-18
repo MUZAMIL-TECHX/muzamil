@@ -9,6 +9,20 @@ const AXIOS_DEFAULTS = {
     }
 };
 
+// Helper function to add reaction
+async function addReaction(sock, message, emoji) {
+    try {
+        await sock.sendMessage(message.key.remoteJid, {
+            react: {
+                text: emoji,
+                key: message.key
+            }
+        });
+    } catch (error) {
+        console.error('Reaction error:', error);
+    }
+}
+
 async function tryRequest(getter, attempts = 3) {
     let lastError;
     for (let attempt = 1; attempt <= attempts; attempt++) {
@@ -53,7 +67,6 @@ async function getYupraVideoByUrl(youtubeUrl) {
 async function getOkatsuVideoByUrl(youtubeUrl) {
     const apiUrl = `https://okatsu-rolezapiiz.vercel.app/downloader/ytmp4?url=${encodeURIComponent(youtubeUrl)}`;
     const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
-    // shape: { status, creator, url, result: { status, title, mp4 } }
     if (res?.data?.result?.mp4) {
         return { download: res.data.result.mp4, title: res.data.result.title };
     }
@@ -62,12 +75,22 @@ async function getOkatsuVideoByUrl(youtubeUrl) {
 
 async function videoCommand(sock, chatId, message) {
     try {
+        // 🔄 Processing reaction
+        await addReaction(sock, message, '🔄');
+
         const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
         const searchQuery = text.split(' ').slice(1).join(' ').trim();
         
-        
         if (!searchQuery) {
-            await sock.sendMessage(chatId, { text: 'What video do you want to download?' }, { quoted: message });
+            await addReaction(sock, message, '❌');
+            await sock.sendMessage(chatId, { 
+                text: `🎬 *Video Downloader*\n\n` +
+                      `Usage:\n` +
+                      `.video [song name / link]\n\n` +
+                      `Example:\n` +
+                      `.video Atif Aslam songs\n` +
+                      `.video https://youtu.be/xxxxx`
+            }, { quoted: message });
             return;
         }
 
@@ -75,13 +98,18 @@ async function videoCommand(sock, chatId, message) {
         let videoUrl = '';
         let videoTitle = '';
         let videoThumbnail = '';
+        
         if (searchQuery.startsWith('http://') || searchQuery.startsWith('https://')) {
             videoUrl = searchQuery;
         } else {
             // Search YouTube for the video
             const { videos } = await yts(searchQuery);
             if (!videos || videos.length === 0) {
-                await sock.sendMessage(chatId, { text: 'No videos found!' }, { quoted: message });
+                await addReaction(sock, message, '❌');
+                await sock.sendMessage(chatId, { 
+                    text: `❌ *No Videos Found*\n\n` +
+                          `No results found for: *${searchQuery}*`
+                }, { quoted: message });
                 return;
             }
             videoUrl = videos[0].url;
@@ -89,39 +117,53 @@ async function videoCommand(sock, chatId, message) {
             videoThumbnail = videos[0].thumbnail;
         }
 
-        // Send thumbnail immediately
+        // Send thumbnail with styled message
         try {
             const ytId = (videoUrl.match(/(?:youtu\.be\/|v=)([a-zA-Z0-9_-]{11})/) || [])[1];
             const thumb = videoThumbnail || (ytId ? `https://i.ytimg.com/vi/${ytId}/sddefault.jpg` : undefined);
             const captionTitle = videoTitle || searchQuery;
+            
             if (thumb) {
+                const styledCaption = `
+╔══════════════════════════════╗
+║        🎬 𝗩𝗶𝗱𝗲𝗼 𝗙𝗼𝘂𝗻𝗱
+╠══════════════════════════════╣
+║ 📌 𝗧𝗶𝘁𝗹𝗲 : ${captionTitle.substring(0, 30)}${captionTitle.length > 30 ? '...' : ''}
+║ ⏳ 𝗦𝘁𝗮𝘁𝘂𝘀 : Downloading...
+╚══════════════════════════════╝
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝗨𝗭𝗔𝗠𝗜𝗟-𝗫𝗗`;
+
                 await sock.sendMessage(chatId, {
                     image: { url: thumb },
-                    caption: `*${captionTitle}*\nDownloading...`
+                    caption: styledCaption
                 }, { quoted: message });
             }
-        } catch (e) { console.error('[VIDEO] thumb error:', e?.message || e); }
-        
+        } catch (e) { 
+            console.error('[VIDEO] thumb error:', e?.message || e); 
+        }
 
         // Validate YouTube URL
         let urls = videoUrl.match(/(?:https?:\/\/)?(?:youtu\.be\/|(?:www\.|m\.)?youtube\.com\/(?:watch\?v=|v\/|embed\/|shorts\/|playlist\?list=)?)([a-zA-Z0-9_-]{11})/gi);
         if (!urls) {
-            await sock.sendMessage(chatId, { text: 'This is not a valid YouTube link!' }, { quoted: message });
+            await addReaction(sock, message, '❌');
+            await sock.sendMessage(chatId, { 
+                text: `❌ *Invalid Link*\n\n` +
+                      `This is not a valid YouTube link.`
+            }, { quoted: message });
             return;
         }
 
-        // Try multiple APIs with fallback chain: EliteProTech -> Yupra -> Okatsu
+        // Try multiple APIs
         let videoData;
         let downloadSuccess = false;
         
-        // List of API methods to try
         const apiMethods = [
             { name: 'EliteProTech', method: () => getEliteProTechVideoByUrl(videoUrl) },
             { name: 'Yupra', method: () => getYupraVideoByUrl(videoUrl) },
             { name: 'Okatsu', method: () => getOkatsuVideoByUrl(videoUrl) }
         ];
         
-        // Try each API until we successfully get video data
         for (const apiMethod of apiMethods) {
             try {
                 videoData = await apiMethod.method();
@@ -129,51 +171,60 @@ async function videoCommand(sock, chatId, message) {
                 
                 if (!videoUrl_check) {
                     console.log(`${apiMethod.name} returned no download URL, trying next API...`);
-                    continue; // Try next API
+                    continue;
                 }
                 
                 downloadSuccess = true;
-                break; // Success! Exit the loop
+                break;
             } catch (apiErr) {
-                // API call failed, try next API
                 console.log(`${apiMethod.name} API failed:`, apiErr.message);
                 continue;
             }
         }
         
-        // If all APIs failed, throw error
         if (!downloadSuccess || !videoData) {
-            throw new Error('All download sources failed. The content may be unavailable or blocked in your region.');
+            await addReaction(sock, message, '❌');
+            throw new Error('All download sources failed.');
         }
 
-        // Send video directly using the download URL
+        // Send video
         await sock.sendMessage(chatId, {
             video: { url: videoData.download || videoData.dl || videoData.url },
             mimetype: 'video/mp4',
             fileName: `${(videoData.title || videoTitle || 'video').replace(/[^\w\s-]/g, '')}.mp4`,
-            caption: `*${videoData.title || videoTitle || 'Video'}*\n\n> *_Downloaded by Muzamil-XD_*`
+            caption: `
+╔══════════════════════════════╗
+║        🎬 𝗩𝗶𝗱𝗲𝗼 𝗥𝗲𝗮𝗱𝘆!
+╠══════════════════════════════╣
+║ 📌 ${(videoData.title || videoTitle || 'Video').substring(0, 35)}${(videoData.title || videoTitle || 'Video').length > 35 ? '...' : ''}
+║ ✅ 𝗦𝘁𝗮𝘁𝘂𝘀 : Downloaded
+╚══════════════════════════════╝
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝗨𝗭𝗔𝗠𝗜𝗟-𝗫𝗗`
         }, { quoted: message });
 
+        // ✅ Done reaction
+        await addReaction(sock, message, '✅');
 
     } catch (error) {
         console.error('[VIDEO] Command Error:', error?.message || error);
+        await addReaction(sock, message, '❌');
         
-        // Provide more specific error messages
-        let errorMessage = '❌ Failed to download video.';
+        let errorMessage = `❌ *Failed to download video.*\n\n`;
         if (error.message && error.message.includes('blocked')) {
-            errorMessage = '❌ Download blocked. The content may be unavailable in your region or due to legal restrictions.';
+            errorMessage += `🔴 Content may be unavailable in your region.`;
         } else if (error.response?.status === 451 || error.status === 451) {
-            errorMessage = '❌ Content unavailable (451). This may be due to legal restrictions or regional blocking.';
+            errorMessage += `🔴 Content unavailable (451). Legal restrictions.`;
         } else if (error.message && error.message.includes('All download sources failed')) {
-            errorMessage = '❌ All download sources failed. The content may be unavailable or blocked.';
-        } else if (error.message) {
-            errorMessage = '❌ Download failed: ' + error.message;
+            errorMessage += `🔴 All download sources failed. Try again later.`;
+        } else {
+            errorMessage += `🔴 ${error.message || 'Unknown error'}`;
         }
         
         await sock.sendMessage(chatId, { 
-            text: errorMessage 
+            text: errorMessage
         }, { quoted: message });
     }
 }
 
-module.exports = videoCommand; 
+module.exports = videoCommand;
