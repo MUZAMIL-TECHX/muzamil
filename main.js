@@ -422,6 +422,10 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await helpCommand(sock, chatId, message, global.channelLink);
                 commandExecuted = true;
                 break;
+                case userMessage === '.creator':
+                await creatorCommand(sock, chatId, message);
+                commandExecuted = true;
+               break;
             case userMessage === '.sticker' || userMessage === '.s':
                 await stickerCommand(sock, chatId, message);
                 commandExecuted = true;
