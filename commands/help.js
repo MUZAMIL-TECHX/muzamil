@@ -1,11 +1,19 @@
 const settings = require('../settings');
 
 async function helpCommand(sock, chatId, message) {
+    // Add reaction to the message
+    await sock.sendMessage(chatId, {
+        react: {
+            text: '📄',
+            key: message.key
+        }
+    });
+
     const helpMessage = `
 ╭━━━〔 👤 *${settings.botName || 'MUZAMIL-XD'}* 〕━━━┈⊷
-┃ ❍ Version  : ${settings.version || '3.0.0'}
+┃ ❍ Version  : ${settings.version || '3.0.7'}
 ┃ ❍ Owner    : ${settings.botOwner || 'Muzamil Khan'}
-┃ ❍ YouTube  : ${global.ytch || 'MUZAMIL-XD'}
+┃ ❍ YouTube  : ${global.ytch || 'TeamRedXhackers'}
 ┃ ❍ Commands : All available commands
 ╰━━━━━━━━━━━━━━━━┈⊷
 
@@ -32,8 +40,16 @@ async function helpCommand(sock, chatId, message) {
 ┃ ❍ .url
 ╰━━━━━━━━━━━━━━━━┈⊷
 
+╭━━━〔 🔍 *SEARCH MENU* 〕━━━┈⊷
+┃ ❍ .truecaller [number]
+┃ ❍ .simdata [number/cnic]
+┃ ❍ .apk [app name]
+┃ ❍ .github / .git / .repo
+╰━━━━━━━━━━━━━━━━┈⊷
+
 ╭━━━〔 👮 *ADMIN MENU* 〕━━━┈⊷
 ┃ ❍ .ban @user
+┃ ❍ .unban @user
 ┃ ❍ .promote @user
 ┃ ❍ .demote @user
 ┃ ❍ .mute [minutes]
@@ -42,18 +58,18 @@ async function helpCommand(sock, chatId, message) {
 ┃ ❍ .kick @user
 ┃ ❍ .warnings @user
 ┃ ❍ .warn @user
-┃ ❍ .antilink
-┃ ❍ .antibadword
+┃ ❍ .antilink [on/off]
+┃ ❍ .antitag [on/off]
+┃ ❍ .antibadword [on/off]
+┃ ❍ .chatbot [on/off]
+┃ ❍ .welcome [on/off]
+┃ ❍ .goodbye [on/off]
 ┃ ❍ .clear
 ┃ ❍ .tag [message]
 ┃ ❍ .tagall
 ┃ ❍ .tagnotadmin
 ┃ ❍ .hidetag [message]
-┃ ❍ .chatbot
 ┃ ❍ .resetlink
-┃ ❍ .antitag [on/off]
-┃ ❍ .welcome [on/off]
-┃ ❍ .goodbye [on/off]
 ┃ ❍ .setgdesc [description]
 ┃ ❍ .setgname [name]
 ┃ ❍ .setgpp [reply image]
@@ -62,34 +78,33 @@ async function helpCommand(sock, chatId, message) {
 ╭━━━〔 🔒 *OWNER MENU* 〕━━━┈⊷
 ┃ ❍ .mode [public/private]
 ┃ ❍ .clearsession
-┃ ❍ .antidelete
+┃ ❍ .antidelete [on/off]
 ┃ ❍ .cleartmp
 ┃ ❍ .update
 ┃ ❍ .settings
 ┃ ❍ .setpp [reply image]
 ┃ ❍ .autoreact [on/off]
 ┃ ❍ .autostatus [on/off]
-┃ ❍ .autostatus react [on/off]
 ┃ ❍ .autotyping [on/off]
 ┃ ❍ .autoread [on/off]
 ┃ ❍ .anticall [on/off]
-┃ ❍ .pmblocker [on/off/status]
-┃ ❍ .pmblocker setmsg [text]
-┃ ❍ .setmention [reply msg]
+┃ ❍ .pmblocker [on/off]
 ┃ ❍ .mention [on/off]
+┃ ❍ .setmention [reply msg]
+┃ ❍ .sudo [add/remove]
 ╰━━━━━━━━━━━━━━━━┈⊷
 
 ╭━━━〔 🎨 *STICKER MENU* 〕━━━┈⊷
-┃ ❍ .blur [image]
+┃ ❍ .sticker / .s
 ┃ ❍ .simage [reply sticker]
-┃ ❍ .sticker [reply image]
-┃ ❍ .removebg
-┃ ❍ .remini
-┃ ❍ .crop [reply image]
-┃ ❍ .tgsticker [link]
-┃ ❍ .meme
 ┃ ❍ .take [packname]
 ┃ ❍ .emojimix [emj1+emj2]
+┃ ❍ .tgsticker [link]
+┃ ❍ .crop [reply image]
+┃ ❍ .blur [image]
+┃ ❍ .removebg
+┃ ❍ .remini
+┃ ❍ .meme
 ┃ ❍ .igs [insta link]
 ┃ ❍ .igsc [insta link]
 ╰━━━━━━━━━━━━━━━━┈⊷
@@ -205,7 +220,7 @@ async function helpCommand(sock, chatId, message) {
 ┃ ❍ .repo
 ╰━━━━━━━━━━━━━━━━┈⊷
 
-> 𝐂𝐑𝐄𝐀𝐓𝐄𝐑: ${settings.botOwner || 'MUZAMIL-XD'}`;
+> 𝐂𝐑𝐄𝐀𝐓𝐄𝐑: ${settings.botOwner || 'Muzamil Khan'}`;
 
     try {
         const imageUrl = typeof global.botImageUrl === 'string'
