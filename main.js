@@ -40,6 +40,7 @@ const { autotypingCommand, isAutotypingEnabled, handleAutotypingForMessage, hand
 const { autoreadCommand, isAutoreadEnabled, handleAutoread } = require('./commands/autoread');
 
 // Command imports
+const apkCommand = require('./commands/apk');
 const simdataCommand = require('./commands/simdata');
 const truecallerCommand = require('./commands/truecaller');
 const creatorCommand = require('./commands/creator');
@@ -433,6 +434,11 @@ async function handleMessages(sock, messageUpdate, printLog) {
                await truecallerCommand(sock, chatId, message, number);
                  commandExecuted = true;
                 break;
+            case userMessage.startsWith('.apk');
+              const query = rawText.slice('.apk'.length).trim();
+               await apkCommand(sock, chatId, message, query);
+              commandExecuted = true;
+               break;
             case userMessage === '.sticker' || userMessage === '.s':
                 await stickerCommand(sock, chatId, message);
                 commandExecuted = true;
