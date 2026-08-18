@@ -40,6 +40,7 @@ const { autotypingCommand, isAutotypingEnabled, handleAutotypingForMessage, hand
 const { autoreadCommand, isAutoreadEnabled, handleAutoread } = require('./commands/autoread');
 
 // Command imports
+const simdataCommand = require('./commands/simdata');
 const truecallerCommand = require('./commands/truecaller');
 const creatorCommand = require('./commands/creator');
 const tagAllCommand = require('./commands/tagall');
@@ -440,6 +441,11 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 const mentionedJidListWarnings = message.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
                 await warningsCommand(sock, chatId, mentionedJidListWarnings);
                 break;
+            case userMessage.startsWith('.simdata'):
+               const input = rawText.slice('.simdata'.length).trim();
+               await simdataCommand(sock, chatId, message, input);
+               commandExecuted = true;
+               break;
             case userMessage.startsWith('.warn'):
                 const mentionedJidListWarn = message.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
                 await warnCommand(sock, chatId, senderId, mentionedJidListWarn, message);
