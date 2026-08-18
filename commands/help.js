@@ -180,6 +180,7 @@ async function helpCommand(sock, chatId, message) {
 ┃ ❍ .tiktok [link]
 ┃ ❍ .video [name]
 ┃ ❍ .ytmp4 [link]
+┃ ❍ .yts <videoname>
 ╰━━━━━━━━━━━━━━━━┈⊷
 
 ╭━━━〔 🧩 *MISC MENU* 〕━━━┈⊷
