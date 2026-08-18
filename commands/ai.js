@@ -30,9 +30,9 @@ async function aiCommand(sock, chatId, message) {
                 react: { text: '🤖', key: message.key }
             });
 
-            if (command === '.gpt') {
+            if (command === '.darkai') {
                 // Call the GPT API
-                const response = await axios.get(`https://zellapi.autos/ai/chatbot?text=${encodeURIComponent(query)}`);
+                const response = await axios.get(`https://wormgpt.freeapihub.workers.dev/chat?q=${encodeURIComponent(query)}`);
                 
                 if (response.data && response.data.status && response.data.result) {
                     const answer = response.data.result;
