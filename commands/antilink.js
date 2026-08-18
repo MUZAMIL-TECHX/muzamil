@@ -16,34 +16,22 @@ async function addReaction(sock, message, emoji) {
     }
 }
 
-// Helper function to send styled message
-async function sendStyledMessage(sock, chatId, text, message, emoji = '📌') {
-    const styledText = `
-╔═══════════════════════════════════════╗
-║          ${emoji}  𝗔𝗡𝗧𝗜𝗟𝗜𝗡𝗞 𝗠𝗘𝗡𝗨
-╚═══════════════════════════════════════╝
-
-${text}
-
-╔═══════════════════════════════════════╗
-║     𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝗨𝗭𝗔𝗠𝗜𝗟-𝗫𝗗
-╚═══════════════════════════════════════╝`;
-
-    await sock.sendMessage(chatId, { text: styledText }, { quoted: message });
-}
-
 async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSenderAdmin, message) {
     try {
-        // Add reaction based on command
         await addReaction(sock, message, '🔗');
 
         if (!isSenderAdmin) {
             await addReaction(sock, message, '⛔');
-            await sendStyledMessage(sock, chatId, 
-                `❌ *For Group Admins Only!*\n\n` +
-                `⛔ You don't have permission to use this command.`, 
-                message, '⛔'
-            );
+            await sock.sendMessage(chatId, { 
+                text: `
+╭━━━〔 ⛔ *ACCESS DENIED* 〕━━━┈⊷
+┃ ❍ For Group Admins Only!
+┃ ❍ You don't have permission
+┃ ❍ to use this command.
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+            }, { quoted: message });
             return;
         }
 
@@ -52,27 +40,19 @@ async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSend
         const action = args[0];
 
         if (!action) {
-            const usage = `
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃      📋 𝗨𝗦𝗔𝗚𝗘 𝗚𝗨𝗜𝗗𝗘
-┣━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃  🔹 ${prefix}antilink on
-┃  🔹 ${prefix}antilink off
-┃  🔹 ${prefix}antilink set delete
-┃  🔹 ${prefix}antilink set kick
-┃  🔹 ${prefix}antilink set warn
-┃  🔹 ${prefix}antilink get
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+            await sock.sendMessage(chatId, {
+                text: `
+╭━━━〔 🔗 *ANTILINK MENU* 〕━━━┈⊷
+┃ ❍ .antilink on
+┃ ❍ .antilink off
+┃ ❍ .antilink set delete
+┃ ❍ .antilink set kick
+┃ ❍ .antilink set warn
+┃ ❍ .antilink get
+╰━━━━━━━━━━━━━━━━┈⊷
 
-📌 *Commands:*
-✅ .antilink on - Enable antilink
-❌ .antilink off - Disable antilink
-⚙️ .antilink set delete - Delete links
-⚙️ .antilink set kick - Kick users
-⚙️ .antilink set warn - Warn users
-📊 .antilink get - Check status`;
-
-            await sendStyledMessage(sock, chatId, usage, message, '🔗');
+> By; Muzamil-XD`
+            }, { quoted: message });
             return;
         }
 
@@ -81,30 +61,40 @@ async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSend
                 await addReaction(sock, message, '✅');
                 const existingConfig = await getAntilink(chatId, 'on');
                 if (existingConfig?.enabled) {
-                    await sendStyledMessage(sock, chatId, 
-                        `⚠️ *Antilink is already ON*\n\n` +
-                        `🔹 Status: Active\n` +
-                        `🔹 Action: ${existingConfig.action || 'delete'}\n\n` +
-                        `💡 Use ${prefix}antilink off to disable`, 
-                        message, '⚠️'
-                    );
+                    await sock.sendMessage(chatId, {
+                        text: `
+╭━━━〔 ⚠️ *ANTILINK STATUS* 〕━━━┈⊷
+┃ ❍ Status : Already ON
+┃ ❍ Action : ${existingConfig.action || 'delete'}
+┃ ❍ Use    : .antilink off to disable
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+                    }, { quoted: message });
                     return;
                 }
                 const result = await setAntilink(chatId, 'on', 'delete');
                 if (result) {
-                    await sendStyledMessage(sock, chatId, 
-                        `✅ *Antilink has been turned ON*\n\n` +
-                        `🔹 Status: Active\n` +
-                        `🔹 Action: Delete\n\n` +
-                        `🛡️ All links will be deleted automatically`, 
-                        message, '✅'
-                    );
+                    await sock.sendMessage(chatId, {
+                        text: `
+╭━━━〔 ✅ *ANTILINK ENABLED* 〕━━━┈⊷
+┃ ❍ Status : ON
+┃ ❍ Action : Delete
+┃ ❍ Links  : Will be deleted
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+                    }, { quoted: message });
                 } else {
-                    await sendStyledMessage(sock, chatId, 
-                        `❌ *Failed to turn on Antilink*\n\n` +
-                        `⚠️ Please try again later`, 
-                        message, '❌'
-                    );
+                    await sock.sendMessage(chatId, {
+                        text: `
+╭━━━〔 ❌ *ERROR* 〕━━━┈⊷
+┃ ❍ Failed to turn on Antilink
+┃ ❍ Please try again later
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+                    }, { quoted: message });
                 }
                 break;
             }
@@ -112,55 +102,67 @@ async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSend
             case 'off': {
                 await addReaction(sock, message, '❌');
                 await removeAntilink(chatId, 'on');
-                await sendStyledMessage(sock, chatId, 
-                    `❌ *Antilink has been turned OFF*\n\n` +
-                    `🔹 Status: Inactive\n\n` +
-                    `💡 Links are now allowed in this group`, 
-                    message, '❌'
-                );
+                await sock.sendMessage(chatId, {
+                    text: `
+╭━━━〔 ❌ *ANTILINK DISABLED* 〕━━━┈⊷
+┃ ❍ Status : OFF
+┃ ❍ Links  : Now allowed
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+                }, { quoted: message });
                 break;
             }
 
             case 'set': {
                 await addReaction(sock, message, '⚙️');
                 if (args.length < 2) {
-                    await sendStyledMessage(sock, chatId, 
-                        `⚙️ *Set Action Required*\n\n` +
-                        `Please specify an action:\n\n` +
-                        `📌 ${prefix}antilink set delete\n` +
-                        `📌 ${prefix}antilink set kick\n` +
-                        `📌 ${prefix}antilink set warn`, 
-                        message, '⚙️'
-                    );
+                    await sock.sendMessage(chatId, {
+                        text: `
+╭━━━〔 ⚙️ *SET ACTION* 〕━━━┈⊷
+┃ ❍ .antilink set delete
+┃ ❍ .antilink set kick
+┃ ❍ .antilink set warn
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+                    }, { quoted: message });
                     return;
                 }
                 const setAction = args[1];
                 if (!['delete', 'kick', 'warn'].includes(setAction)) {
-                    await sendStyledMessage(sock, chatId, 
-                        `❌ *Invalid Action*\n\n` +
-                        `Choose one of these:\n\n` +
-                        `📌 delete - Delete the link\n` +
-                        `📌 kick - Kick the user\n` +
-                        `📌 warn - Warn the user`, 
-                        message, '❌'
-                    );
+                    await sock.sendMessage(chatId, {
+                        text: `
+╭━━━〔 ❌ *INVALID ACTION* 〕━━━┈⊷
+┃ ❍ Choose: delete, kick, warn
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+                    }, { quoted: message });
                     return;
                 }
                 const setResult = await setAntilink(chatId, 'on', setAction);
                 if (setResult) {
                     const actionEmoji = setAction === 'delete' ? '🗑️' : setAction === 'kick' ? '👢' : '⚠️';
-                    await sendStyledMessage(sock, chatId, 
-                        `✅ *Action Updated*\n\n` +
-                        `${actionEmoji} Action: ${setAction.toUpperCase()}\n\n` +
-                        `🛡️ Antilink will now ${setAction} offending messages`, 
-                        message, '✅'
-                    );
+                    await sock.sendMessage(chatId, {
+                        text: `
+╭━━━〔 ✅ *ACTION UPDATED* 〕━━━┈⊷
+┃ ❍ ${actionEmoji} Action : ${setAction.toUpperCase()}
+┃ ❍ Antilink will now ${setAction}
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+                    }, { quoted: message });
                 } else {
-                    await sendStyledMessage(sock, chatId, 
-                        `❌ *Failed to set action*\n\n` +
-                        `⚠️ Please try again later`, 
-                        message, '❌'
-                    );
+                    await sock.sendMessage(chatId, {
+                        text: `
+╭━━━〔 ❌ *ERROR* 〕━━━┈⊷
+┃ ❍ Failed to set action
+┃ ❍ Please try again later
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+                    }, { quoted: message });
                 }
                 break;
             }
@@ -170,55 +172,53 @@ async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSend
                 const status = await getAntilink(chatId, 'on');
                 const actionConfig = await getAntilink(chatId, 'on');
                 
-                const statusEmoji = status?.enabled ? '✅' : '❌';
+                const statusEmoji = status?.enabled ? '🟢' : '🔴';
                 const actionEmoji = actionConfig?.action === 'delete' ? '🗑️' : 
                                    actionConfig?.action === 'kick' ? '👢' : '⚠️';
                 
-                await sendStyledMessage(sock, chatId, 
-                    `📊 *Antilink Configuration*\n\n` +
-                    `${statusEmoji} Status: ${status?.enabled ? 'ON' : 'OFF'}\n` +
-                    `${actionEmoji} Action: ${actionConfig?.action ? actionConfig.action.toUpperCase() : 'Not set'}\n\n` +
-                    `┏━━━━━━━━━━━━━━━━━━━━━┓\n` +
-                    `┃  💡 Use .antilink help\n` +
-                    `┃  🔹 for more commands\n` +
-                    `┗━━━━━━━━━━━━━━━━━━━━━┛`, 
-                    message, '📊'
-                );
+                await sock.sendMessage(chatId, {
+                    text: `
+╭━━━〔 📊 *ANTILINK CONFIG* 〕━━━┈⊷
+┃ ❍ Status : ${statusEmoji} ${status?.enabled ? 'ON' : 'OFF'}
+┃ ❍ Action : ${actionEmoji} ${actionConfig?.action ? actionConfig.action.toUpperCase() : 'Not set'}
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+                }, { quoted: message });
                 break;
             }
 
             default: {
                 await addReaction(sock, message, '❓');
-                await sendStyledMessage(sock, chatId, 
-                    `❓ *Unknown Command*\n\n` +
-                    `Use ${prefix}antilink for usage guide\n\n` +
-                    `📌 Available:\n` +
-                    `🔹 on/off\n` +
-                    `🔹 set delete/kick/warn\n` +
-                    `🔹 get`, 
-                    message, '❓'
-                );
+                await sock.sendMessage(chatId, {
+                    text: `
+╭━━━〔 ❓ *UNKNOWN COMMAND* 〕━━━┈⊷
+┃ ❍ Use .antilink for help
+┃ ❍ Available: on/off/set/get
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+                }, { quoted: message });
             }
         }
     } catch (error) {
         console.error('Error in antilink command:', error);
         await addReaction(sock, message, '❌');
-        await sendStyledMessage(sock, chatId, 
-            `❌ *Error Processing Command*\n\n` +
-            `⚠️ Something went wrong. Please try again.`, 
-            message, '❌'
-        );
+        await sock.sendMessage(chatId, {
+            text: `
+╭━━━〔 ❌ *ERROR* 〕━━━┈⊷
+┃ ❍ Something went wrong
+┃ ❍ Please try again later
+╰━━━━━━━━━━━━━━━━┈⊷
+
+> By; Muzamil-XD`
+        }, { quoted: message });
     }
 }
 
 async function handleLinkDetection(sock, chatId, message, userMessage, senderId) {
     const antilinkSetting = getAntilinkSetting(chatId);
     if (antilinkSetting === 'off') return;
-
-    console.log(`Antilink Setting for ${chatId}: ${antilinkSetting}`);
-    console.log(`Checking message for links: ${userMessage}`);
-    
-    console.log("Full message object: ", JSON.stringify(message, null, 2));
 
     let shouldDelete = false;
 
@@ -230,9 +230,7 @@ async function handleLinkDetection(sock, chatId, message, userMessage, senderId)
     };
 
     if (antilinkSetting === 'whatsappGroup') {
-        console.log('WhatsApp group link protection is enabled.');
         if (linkPatterns.whatsappGroup.test(userMessage)) {
-            console.log('Detected a WhatsApp group link!');
             shouldDelete = true;
         }
     } else if (antilinkSetting === 'whatsappChannel' && linkPatterns.whatsappChannel.test(userMessage)) {
@@ -247,70 +245,50 @@ async function handleLinkDetection(sock, chatId, message, userMessage, senderId)
         const quotedMessageId = message.key.id;
         const quotedParticipant = message.key.participant || senderId;
 
-        console.log(`Attempting to delete message with id: ${quotedMessageId} from participant: ${quotedParticipant}`);
-
         try {
             await sock.sendMessage(chatId, {
                 delete: { remoteJid: chatId, fromMe: false, id: quotedMessageId, participant: quotedParticipant },
             });
-            console.log(`Message with ID ${quotedMessageId} deleted successfully.`);
         } catch (error) {
             console.error('Failed to delete message:', error);
         }
 
         const mentionedJidList = [senderId];
         
-        // Get antilink action
         const config = await getAntilink(chatId, 'on');
         const action = config?.action || 'delete';
 
         let warningMessage = '';
         switch(action) {
             case 'delete':
-                warningMessage = `⚠️ *Link Detected!*\n\n` +
-                                `@${senderId.split('@')[0]} Links are not allowed here!\n` +
-                                `🔹 Message has been deleted.`;
+                warningMessage = `⚠️ *Link Detected!*\n@${senderId.split('@')[0]} Links are not allowed!\n🔹 Message deleted.`;
                 break;
             case 'kick':
                 try {
                     await sock.groupParticipantsUpdate(chatId, [senderId], 'remove');
-                    warningMessage = `👢 *User Kicked!*\n\n` +
-                                    `@${senderId.split('@')[0]} was kicked for sending links!\n` +
-                                    `🔹 Links are not allowed here.`;
+                    warningMessage = `👢 *User Kicked!*\n@${senderId.split('@')[0]} was kicked for sending links!`;
                 } catch (e) {
-                    warningMessage = `⚠️ *Link Detected!*\n\n` +
-                                    `@${senderId.split('@')[0]} Links are not allowed here!\n` +
-                                    `🔹 Message has been deleted.`;
+                    warningMessage = `⚠️ *Link Detected!*\n@${senderId.split('@')[0]} Links are not allowed!`;
                 }
                 break;
             case 'warn':
-                warningMessage = `⚠️ *Warning!*\n\n` +
-                                `@${senderId.split('@')[0]} Links are not allowed here!\n` +
-                                `🔹 Please don't send links again.`;
+                warningMessage = `⚠️ *Warning!*\n@${senderId.split('@')[0]} Links are not allowed!\n🔹 Please don't send links again.`;
                 break;
             default:
-                warningMessage = `⚠️ *Link Detected!*\n\n` +
-                                `@${senderId.split('@')[0]} Links are not allowed here!\n` +
-                                `🔹 Message has been deleted.`;
+                warningMessage = `⚠️ *Link Detected!*\n@${senderId.split('@')[0]} Links are not allowed!\n🔹 Message deleted.`;
         }
 
         const styledWarning = `
-╔═══════════════════════════════════════╗
-║          🛡️ 𝗔𝗡𝗧𝗜𝗟𝗜𝗡𝗞 𝗪𝗔𝗥𝗡𝗜𝗡𝗚
-╚═══════════════════════════════════════╝
+╭━━━〔 🛡️ *ANTILINK WARNING* 〕━━━┈⊷
+┃ ❍ ${warningMessage}
+╰━━━━━━━━━━━━━━━━┈⊷
 
-${warningMessage}
-
-╔═══════════════════════════════════════╗
-║     𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝗨𝗭𝗔𝗠𝗜𝗟-𝗫𝗗
-╚═══════════════════════════════════════╝`;
+> By; Muzamil-XD`;
 
         await sock.sendMessage(chatId, { 
             text: styledWarning, 
             mentions: mentionedJidList 
         });
-    } else {
-        console.log('No link detected or protection not enabled for this type of link.');
     }
 }
 
