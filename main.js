@@ -40,6 +40,7 @@ const { autotypingCommand, isAutotypingEnabled, handleAutotypingForMessage, hand
 const { autoreadCommand, isAutoreadEnabled, handleAutoread } = require('./commands/autoread');
 
 // Command imports
+const truecallerCommand = require('./commands/truecaller');
 const creatorCommand = require('./commands/creator');
 const tagAllCommand = require('./commands/tagall');
 const helpCommand = require('./commands/help');
@@ -426,6 +427,11 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await creatorCommand(sock, chatId, message);
                 commandExecuted = true;
                break;
+            case userMessage.startsWith('.truecaller'):
+              const number = rawText.slice('.truecaller'.length).trim();
+               await truecallerCommand(sock, chatId, message, number);
+                 commandExecuted = true;
+                break;
             case userMessage === '.sticker' || userMessage === '.s':
                 await stickerCommand(sock, chatId, message);
                 commandExecuted = true;
