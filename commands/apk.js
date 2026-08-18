@@ -28,12 +28,12 @@ async function apkCommand(sock, chatId, message, query) {
         const apiUrl = `http://ws75.aptoide.com/api/7/apps/search/query=${encodeURIComponent(query)}/limit=1`;
         
         console.log(`[APK] Searching: ${query}`);
-        console.log(`[APK] URL: ${apiUrl}`);
 
         const response = await axios.get(apiUrl, {
             timeout: 30000,
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json'
             }
         });
 
@@ -44,12 +44,7 @@ async function apkCommand(sock, chatId, message, query) {
             await sock.sendMessage(
                 chatId,
                 {
-                    text: '❌ *APK NOT FOUND*\n\n' +
-                          `🔍 No results found for: *${query}*\n\n` +
-                          '💡 Try:\n' +
-                          '• Check spelling\n' +
-                          '• Use shorter name\n' +
-                          '• Try .apk whatsapp'
+                    text: `❌ *APK NOT FOUND*\n\n🔍 No results found for: *${query}*\n\n💡 Try:\n• Check spelling\n• Use shorter name\n• Example: .apk whatsapp`
                 },
                 { quoted: message }
             );
@@ -67,6 +62,18 @@ async function apkCommand(sock, chatId, message, query) {
 
         if (!appPath) {
             throw new Error('Download link not available');
+        }
+
+        // Check file size (WhatsApp limit ~100MB)
+        if (parseFloat(appSize) > 100) {
+            await sock.sendMessage(
+                chatId,
+                {
+                    text: `⚠️ *File Too Large*\n\n📱 ${appName}\n📏 Size: ${appSize} MB\n\nCannot send files larger than 100MB on WhatsApp.`
+                },
+                { quoted: message }
+            );
+            return;
         }
 
         // Build stylish response
@@ -88,7 +95,7 @@ async function apkCommand(sock, chatId, message, query) {
         caption += `    𝗣𝗹𝗲𝗮𝘀𝗲 𝗪𝗮𝗶𝘁 ⏳\n`;
         caption += `❖━━━━━━━━━━━━━━━━━━━❖`;
 
-        // Send app info with icon
+        // Send app info with icon (if available)
         if (appIcon) {
             try {
                 await sock.sendMessage(
@@ -121,7 +128,7 @@ async function apkCommand(sock, chatId, message, query) {
             {
                 document: { url: appPath },
                 mimetype: "application/vnd.android.package-archive",
-                fileName: `${appName.toUpperCase()}.apk`,
+                fileName: `${appName}.apk`,
                 caption: `📱 *${appName}*\n\n✅ Download Complete!\n\n❖━━━━━━━━━━━━━━━━━━━❖\n  𝗣𝗼𝘄𝗲𝗿𝗲𝗱 𝗕𝘆 𝗠𝘂𝘇𝗮𝗺𝗶𝗹-𝗫𝗗\n❖━━━━━━━━━━━━━━━━━━━❖`
             },
             { quoted: message }
