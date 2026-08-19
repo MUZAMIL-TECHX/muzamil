@@ -28,8 +28,9 @@ async function clearSessionCommand(sock, chatId, msg) {
             return;
         }
 
-        // Define session directory
-        const sessionDir = path.join(__dirname, '../session');
+        // Clear only the account that received the command. In multi-session
+        // mode, deleting the shared session root would damage other accounts.
+        const sessionDir = sock.sessionDir || path.join(__dirname, '../session');
 
         if (!fs.existsSync(sessionDir)) {
             await sock.sendMessage(chatId, { 
@@ -68,6 +69,7 @@ async function clearSessionCommand(sock, chatId, msg) {
             }
             try {
                 const filePath = path.join(sessionDir, file);
+                if (!fs.statSync(filePath).isFile()) continue;
                 fs.unlinkSync(filePath);
                 filesCleared++;
             } catch (error) {

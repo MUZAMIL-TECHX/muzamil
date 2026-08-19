@@ -70,7 +70,12 @@ async function pairCommand(sock, chatId, message, q) {
             });
 
             try {
-                const response = await axios.get(`muzamil-production-d656.up.railway.app/code?number=${number}`);
+                // Point this at the public URL of the current deployment.
+                // The previous hard-coded service had one shared session,
+                // so every user after the first one received "already found".
+                const pairingApi = (process.env.PAIRING_API_URL || process.env.PUBLIC_URL || 'https://muzamil-production-d656.up.railway.app')
+                    .replace(/\/+$/, '');
+                const response = await axios.get(`${pairingApi}/code?number=${encodeURIComponent(number)}`);
                 
                 if (response.data && response.data.code) {
                     const code = response.data.code;
