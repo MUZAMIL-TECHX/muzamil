@@ -86,8 +86,9 @@ enter your WhatsApp number with country code (without `+` or spaces), and select
 enter the displayed code.
 
 The bot stores credentials in `session/`. Each paired WhatsApp number gets an independent
-directory under `session/<phone-number>/`, so multiple people can pair and run the bot
-at the same time. The original root `session/` format remains supported for upgrades.
+directory under `session/<phone-number>/`, including its own auth, message store,
+settings, mode, and branding. Multiple people can pair and run the bot at the same
+time. The original root `session/` format remains supported for upgrades.
 For persistence across Railway redeploys or
 restarts, attach a Railway Volume mounted at `/app/session` and set `SESSION_DIR=/app/session`.
 Without a persistent volume, pairing must be repeated after the service filesystem is reset.
@@ -105,6 +106,12 @@ Optional environment variables:
   request a code from this deployment. Set it when the bot is not using the
   default public URL.
 - `GIPHY_API_KEY` and other API keys — enable optional API-powered commands.
+
+Per-account owner commands:
+
+- `.mode public/private` — changes only the current WhatsApp session.
+- `.botname <name>` — changes the current session's bot name.
+- `.botdp <public-image-url>` — changes the current session's menu image URL.
 
 ### Existing session behavior
 

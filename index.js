@@ -54,11 +54,9 @@ fs.mkdirSync(SESSION_DIR, { recursive: true })
 
 // Import lightweight store
 const store = require('./lib/lightweight_store')
+const { ensureSessionDataDir, readSessionJson } = require('./lib/session_data')
 
-// Initialize store
-store.readFromFile()
 const settings = require('./settings')
-setInterval(() => store.writeToFile(), settings.storeWriteInterval || 10000)
 
 // Memory optimization - Force garbage collection if available
 setInterval(() => {
@@ -92,6 +90,7 @@ const sockets = new Map()
 const pairingLocks = new Map()
 let reconnectTimer = null
 let pairingServer = null
+let baileysVersionPromise = null
 
 function sessionKey(value = 'default') {
     const clean = String(value || 'default').replace(/[^a-zA-Z0-9_-]/g, '')
@@ -135,10 +134,16 @@ async function startXeonBotInc(requestedPhoneNumber = '', requestedSessionKey = 
             process.env.PHONE_NUMBER ||
             process.argv.includes("--pairing-code")
         )
-        let { version, isLatest } = await fetchLatestBaileysVersion()
+        // Fetch the Baileys version once; doing this for every account makes
+        // pairing and reconnects unnecessarily slow.
+        if (!baileysVersionPromise) baileysVersionPromise = fetchLatestBaileysVersion()
+        let { version, isLatest } = await baileysVersionPromise
         fs.mkdirSync(authDir, { recursive: true })
         const { state, saveCreds } = await useMultiFileAuthState(authDir)
         const msgRetryCounterCache = new NodeCache()
+        const sessionStore = store.createStore(join(authDir, 'baileys_store.json'))
+        sessionStore.readFromFile()
+        const storeWriter = setInterval(() => sessionStore.writeToFile(), settings.storeWriteInterval || 10000)
 
         const XeonBotInc = makeWASocket({
             version,
@@ -154,13 +159,13 @@ async function startXeonBotInc(requestedPhoneNumber = '', requestedSessionKey = 
             syncFullHistory: false,
             getMessage: async (key) => {
                 let jid = jidNormalizedUser(key.remoteJid)
-                let msg = await store.loadMessage(jid, key.id)
+                let msg = await sessionStore.loadMessage(jid, key.id)
                 return msg?.message || ""
             },
             msgRetryCounterCache,
             defaultQueryTimeoutMs: 60000,
             connectTimeoutMs: 60000,
-            keepAliveIntervalMs: 10000,
+            keepAliveIntervalMs: 25000,
         })
 
         // Save credentials when they update
@@ -168,10 +173,16 @@ async function startXeonBotInc(requestedPhoneNumber = '', requestedSessionKey = 
         sockets.set(key, XeonBotInc)
         XeonBotInc.sessionKey = key
         XeonBotInc.sessionDir = authDir
+        XeonBotInc.sessionStore = sessionStore
+        XeonBotInc.dataDir = join(authDir, 'data')
+        ensureSessionDataDir(XeonBotInc)
+        const branding = readSessionJson(XeonBotInc, 'branding.json', {})
+        XeonBotInc.botname = branding.name || 'KNIGHT BOT'
+        XeonBotInc.botImageUrl = branding.imageUrl || global.botImageUrl
         // Keep this small compatibility surface for the pairing web server.
         XeonBotInc.authState = { creds: state.creds }
 
-    store.bind(XeonBotInc.ev)
+    sessionStore.bind(XeonBotInc.ev)
 
     // Message handling
     XeonBotInc.ev.on('messages.upsert', async chatUpdate => {
@@ -256,9 +267,10 @@ async function startXeonBotInc(requestedPhoneNumber = '', requestedSessionKey = 
         return (withoutContact ? '' : v.name) || v.subject || v.verifiedName || PhoneNumber('+' + jid.replace('@s.whatsapp.net', '')).getNumber('international')
     }
 
-    XeonBotInc.public = true
+        const mode = readSessionJson(XeonBotInc, 'messageCount.json', { isPublic: true })
+        XeonBotInc.public = mode.isPublic !== false
 
-    XeonBotInc.serializeM = (m) => smsg(XeonBotInc, m, store)
+    XeonBotInc.serializeM = (m) => smsg(XeonBotInc, m, sessionStore)
 
     // Handle pairing code
     if (shouldPair && !XeonBotInc.authState.creds.registered) {
@@ -333,7 +345,7 @@ async function startXeonBotInc(requestedPhoneNumber = '', requestedSessionKey = 
             }
 
             await delay(1999)
-            console.log(chalk.yellow(`\n\n                  ${chalk.bold.blue(`[ ${global.botname || 'MUZAMIL-XD'} ]`)}\n\n`))
+            console.log(chalk.yellow(`\n\n                  ${chalk.bold.blue(`[ ${XeonBotInc.botname || global.botname || 'MUZAMIL-XD'} ]`)}\n\n`))
             console.log(chalk.cyan(`< ================================================== >`))
             console.log(chalk.magenta(`\n${global.themeemoji || '•'} YT CHANNEL: @TeamRedXhackers`))
             console.log(chalk.magenta(`${global.themeemoji || '•'} GITHUB: MUZAMIL-TECHX`))
@@ -346,6 +358,7 @@ async function startXeonBotInc(requestedPhoneNumber = '', requestedSessionKey = 
         if (connection === 'close') {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
             const statusCode = lastDisconnect?.error?.output?.statusCode
+            clearInterval(storeWriter)
             if (getSocket(key) === XeonBotInc) sockets.delete(key)
             
             console.log(chalk.red(`Connection closed due to ${lastDisconnect?.error}, reconnecting ${shouldReconnect}`))

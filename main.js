@@ -26,6 +26,7 @@ setInterval(() => {
 }, 3 * 60 * 60 * 1000);
 
 const settings = require('./settings');
+const { readSessionJson, writeSessionJson } = require('./lib/session_data');
 require('./config.js');
 const { isBanned } = require('./lib/isBanned');
 const yts = require('yt-search');
@@ -242,14 +243,8 @@ async function handleMessages(sock, messageUpdate, printLog) {
             console.log(`📝 Command used in ${isGroup ? 'group' : 'private'}: ${userMessage}`);
         }
         // Read bot mode once; don't early-return so moderation can still run in private mode
-        let isPublic = true;
-        try {
-            const data = JSON.parse(fs.readFileSync('./data/messageCount.json'));
-            if (typeof data.isPublic === 'boolean') isPublic = data.isPublic;
-        } catch (error) {
-            console.error('Error checking access mode:', error);
-            // default isPublic=true on error
-        }
+        const modeData = readSessionJson(sock, 'messageCount.json', { isPublic: true });
+        const isPublic = typeof modeData.isPublic === 'boolean' ? modeData.isPublic : true;
         const isOwnerOrSudoCheck = message.key.fromMe || senderIsOwnerOrSudo;
         // Check if user is banned (skip ban check for unban command)
         if (isBanned(senderId) && !userMessage.startsWith('.unban')) {
@@ -331,7 +326,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
         const isAdminCommand = adminCommands.some(cmd => userMessage.startsWith(cmd));
 
         // List of owner commands
-        const ownerCommands = ['.mode', '.autostatus', '.antidelete', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker'];
+        const ownerCommands = ['.mode', '.botdp', '.botname', '.autostatus', '.antidelete', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker'];
         const isOwnerCommand = ownerCommands.some(cmd => userMessage.startsWith(cmd));
 
         let isSenderAdmin = false;
@@ -482,14 +477,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
                     return;
                 }
                 // Read current data first
-                let data;
-                try {
-                    data = JSON.parse(fs.readFileSync('./data/messageCount.json'));
-                } catch (error) {
-                    console.error('Error reading access mode:', error);
-                    await sock.sendMessage(chatId, { text: 'Failed to read bot mode status', ...channelInfo });
-                    return;
-                }
+                const data = readSessionJson(sock, 'messageCount.json', { isPublic: true });
 
                 const action = userMessage.split(' ')[1]?.toLowerCase();
                 // If no argument provided, show current status
@@ -515,12 +503,53 @@ async function handleMessages(sock, messageUpdate, printLog) {
                     data.isPublic = action === 'public';
 
                     // Save updated data
-                    fs.writeFileSync('./data/messageCount.json', JSON.stringify(data, null, 2));
+                    writeSessionJson(sock, 'messageCount.json', data);
+                    sock.public = data.isPublic;
 
                     await sock.sendMessage(chatId, { text: `Bot is now in *${action}* mode`, ...channelInfo });
                 } catch (error) {
                     console.error('Error updating access mode:', error);
                     await sock.sendMessage(chatId, { text: 'Failed to update bot access mode', ...channelInfo });
+                }
+                break;
+            case userMessage.startsWith('.botname'):
+                {
+                    const botName = rawText.slice('.botname'.length).trim();
+                    if (!botName || botName.length > 50) {
+                        await sock.sendMessage(chatId, {
+                            text: 'Usage: .botname <name> (maximum 50 characters)',
+                            ...channelInfo
+                        }, { quoted: message });
+                        break;
+                    }
+                    const branding = readSessionJson(sock, 'branding.json', {});
+                    branding.name = botName;
+                    writeSessionJson(sock, 'branding.json', branding);
+                    sock.botname = botName;
+                    await sock.sendMessage(chatId, {
+                        text: `✅ This session bot name is now: *${botName}*`,
+                        ...channelInfo
+                    }, { quoted: message });
+                }
+                break;
+            case userMessage.startsWith('.botdp'):
+                {
+                    const imageUrl = rawText.slice('.botdp'.length).trim();
+                    if (!/^https?:\/\/\S+$/i.test(imageUrl)) {
+                        await sock.sendMessage(chatId, {
+                            text: 'Usage: .botdp <public image URL>',
+                            ...channelInfo
+                        }, { quoted: message });
+                        break;
+                    }
+                    const branding = readSessionJson(sock, 'branding.json', {});
+                    branding.imageUrl = imageUrl;
+                    writeSessionJson(sock, 'branding.json', branding);
+                    sock.botImageUrl = imageUrl;
+                    await sock.sendMessage(chatId, {
+                        text: '✅ This session bot DP URL has been updated.',
+                        ...channelInfo
+                    }, { quoted: message });
                 }
                 break;
             case userMessage.startsWith('.anticall'):
@@ -1255,13 +1284,8 @@ async function handleGroupParticipantUpdate(sock, update) {
         if (!id.endsWith('@g.us')) return;
 
         // Respect bot mode: only announce promote/demote in public mode
-        let isPublic = true;
-        try {
-            const modeData = JSON.parse(fs.readFileSync('./data/messageCount.json'));
-            if (typeof modeData.isPublic === 'boolean') isPublic = modeData.isPublic;
-        } catch (e) {
-            // If reading fails, default to public behavior
-        }
+        const modeData = readSessionJson(sock, 'messageCount.json', { isPublic: true });
+        const isPublic = typeof modeData.isPublic === 'boolean' ? modeData.isPublic : true;
 
         // Handle promotion events
         if (action === 'promote') {
