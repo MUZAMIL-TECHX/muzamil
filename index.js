@@ -85,10 +85,32 @@ global.themeemoji = "•"
 // Menu DP: paste any public image URL here. No local assets folder is required.
 global.botImageUrl = "https://i.ibb.co/yz79pyg/1000040527.png"
 const useMobile = process.argv.includes("--mobile")
-let currentSocket = null
-let pairingLock = null
+// Every WhatsApp account gets its own auth directory and socket.  The old
+// implementation kept these as singletons, which made the second pairing
+// request reuse the first account and return "Session already found".
+const sockets = new Map()
+const pairingLocks = new Map()
 let reconnectTimer = null
 let pairingServer = null
+
+function sessionKey(value = 'default') {
+    const clean = String(value || 'default').replace(/[^a-zA-Z0-9_-]/g, '')
+    return clean || 'default'
+}
+
+function sessionPath(key = 'default') {
+    const normalized = sessionKey(key)
+    // Preserve the original root session for backwards compatibility.
+    return normalized === 'default' ? SESSION_DIR : join(SESSION_DIR, normalized)
+}
+
+function getSocket(key = 'default') {
+    return sockets.get(sessionKey(key)) || null
+}
+
+function hasCredentials(dir) {
+    return existsSync(join(dir, 'creds.json'))
+}
 
 // Only create readline interface if we're in an interactive environment
 const rl = process.stdin.isTTY ? readline.createInterface({ input: process.stdin, output: process.stdout }) : null
@@ -102,7 +124,9 @@ const question = (text) => {
 }
 
 
-async function startXeonBotInc(requestedPhoneNumber = '') {
+async function startXeonBotInc(requestedPhoneNumber = '', requestedSessionKey = 'default') {
+    const key = sessionKey(requestedSessionKey || requestedPhoneNumber || 'default')
+    const authDir = sessionPath(key)
     try {
         const requestedNumber = String(requestedPhoneNumber || '').replace(/[^0-9]/g, '')
         const shouldPair = Boolean(
@@ -112,7 +136,8 @@ async function startXeonBotInc(requestedPhoneNumber = '') {
             process.argv.includes("--pairing-code")
         )
         let { version, isLatest } = await fetchLatestBaileysVersion()
-        const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR)
+        fs.mkdirSync(authDir, { recursive: true })
+        const { state, saveCreds } = await useMultiFileAuthState(authDir)
         const msgRetryCounterCache = new NodeCache()
 
         const XeonBotInc = makeWASocket({
@@ -140,7 +165,9 @@ async function startXeonBotInc(requestedPhoneNumber = '') {
 
         // Save credentials when they update
         XeonBotInc.ev.on('creds.update', saveCreds)
-        currentSocket = XeonBotInc
+        sockets.set(key, XeonBotInc)
+        XeonBotInc.sessionKey = key
+        XeonBotInc.sessionDir = authDir
         // Keep this small compatibility surface for the pairing web server.
         XeonBotInc.authState = { creds: state.creds }
 
@@ -319,15 +346,15 @@ async function startXeonBotInc(requestedPhoneNumber = '') {
         if (connection === 'close') {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
             const statusCode = lastDisconnect?.error?.output?.statusCode
-            if (currentSocket === XeonBotInc) currentSocket = null
+            if (getSocket(key) === XeonBotInc) sockets.delete(key)
             
             console.log(chalk.red(`Connection closed due to ${lastDisconnect?.error}, reconnecting ${shouldReconnect}`))
             
             if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
                 try {
-                    rmSync(SESSION_DIR, { recursive: true, force: true })
-                    fs.mkdirSync(SESSION_DIR, { recursive: true })
-                    console.log(chalk.yellow('Session folder deleted. Please re-authenticate.'))
+                    rmSync(authDir, { recursive: true, force: true })
+                    fs.mkdirSync(authDir, { recursive: true })
+                    console.log(chalk.yellow(`Session folder deleted (${key}). Please re-authenticate.`))
                 } catch (error) {
                     console.error('Error deleting session:', error)
                 }
@@ -336,14 +363,12 @@ async function startXeonBotInc(requestedPhoneNumber = '') {
             
             if (shouldReconnect) {
                 console.log(chalk.yellow('Reconnecting...'))
-                if (!reconnectTimer) {
-                    reconnectTimer = setTimeout(() => {
-                        reconnectTimer = null
-                        startXeonBotInc().catch((error) => {
+                setTimeout(() => {
+                        if (getSocket(key)) return
+                        startXeonBotInc('', key).catch((error) => {
                             console.error('Reconnect attempt failed:', error)
                         })
                     }, 5000)
-                }
             }
         }
     })
@@ -408,10 +433,10 @@ async function startXeonBotInc(requestedPhoneNumber = '') {
     return XeonBotInc
     } catch (error) {
         console.error('Error in startXeonBotInc:', error)
-        if (!reconnectTimer) {
+        if (!getSocket(key)) {
             reconnectTimer = setTimeout(() => {
                 reconnectTimer = null
-                startXeonBotInc().catch((retryError) => {
+                startXeonBotInc(requestedPhoneNumber, key).catch((retryError) => {
                     console.error('Retry attempt failed:', retryError)
                 })
             }, 5000)
@@ -426,37 +451,39 @@ function cleanPairingNumber(value) {
 
 async function requestPairingCodeForNumber(value) {
     const number = cleanPairingNumber(value)
+    const key = sessionKey(number)
     const pn = require('awesome-phonenumber')
     if (!pn('+' + number).isValid()) {
         throw new Error('Enter a valid international WhatsApp number without + or spaces.')
     }
 
-    if (pairingLock) return pairingLock
-    pairingLock = (async () => {
-        if (currentSocket?.authState?.creds?.registered) {
-            throw new Error('This bot is already connected. Remove the session before pairing again.')
+    if (pairingLocks.has(key)) return pairingLocks.get(key)
+    pairingLocks.set(key, (async () => {
+        const existing = getSocket(key)
+        if (existing?.authState?.creds?.registered || hasCredentials(sessionPath(key))) {
+            throw new Error(`Session already found for ${number}. Use a different WhatsApp number or clear session ${key}.`)
         }
 
-        if (currentSocket && !currentSocket.authState?.creds?.registered) {
+        if (existing && !existing.authState?.creds?.registered) {
             try {
                 await delay(1500)
-                let code = await currentSocket.requestPairingCode(number)
+                let code = await existing.requestPairingCode(number)
                 return code?.match(/.{1,4}/g)?.join("-") || code
             } catch (_) {
-                try { await currentSocket.ws?.close() } catch {}
-                currentSocket = null
+                try { await existing.ws?.close() } catch {}
+                sockets.delete(key)
             }
         }
 
-        const socket = await startXeonBotInc(number)
+        const socket = await startXeonBotInc(number, key)
         if (!socket?.__pairingCode) throw new Error('Pairing code was not generated. Please try again.')
         return socket.__pairingCode
-    })()
+    })())
 
     try {
-        return await pairingLock
+        return await pairingLocks.get(key)
     } finally {
-        pairingLock = null
+        pairingLocks.delete(key)
     }
 }
 
@@ -469,12 +496,25 @@ function startPairingServer() {
     app.get('/health', (_req, res) => res.json({
         status: 'ok',
         bot: global.botname || 'KNIGHT BOT',
-        connected: Boolean(currentSocket?.authState?.creds?.registered)
+        connected: [...sockets.values()].some(socket => socket.authState?.creds?.registered),
+        sessions: sockets.size
     }))
-    app.get('/status', (_req, res) => res.json({
-        connected: Boolean(currentSocket?.authState?.creds?.registered),
-        number: currentSocket?.user?.id?.split(':')[0] || null,
-        hasSession: existsSync(join(SESSION_DIR, 'creds.json'))
+    app.get('/status', (req, res) => {
+        const key = sessionKey(req.query.session || req.query.number || 'default')
+        const socket = getSocket(key)
+        res.json({
+            connected: Boolean(socket?.authState?.creds?.registered),
+            number: socket?.user?.id?.split(':')[0] || (key === 'default' ? null : key),
+            session: key,
+            hasSession: hasCredentials(sessionPath(key))
+        })
+    })
+    app.get('/sessions', (_req, res) => res.json({
+        sessions: [...sockets.entries()].map(([session, socket]) => ({
+            session,
+            connected: Boolean(socket.authState?.creds?.registered),
+            number: socket.user?.id?.split(':')[0] || null
+        }))
     }))
     app.get('/code', async (req, res) => {
         try {
@@ -492,12 +532,16 @@ function startPairingServer() {
 
 startPairingServer()
 
-
-// Start the bot with error handling
-startXeonBotInc().catch(error => {
-    console.error('Fatal error:', error)
-    process.exit(1)
-})
+// Restore every saved account after a restart.  Keep the legacy root session
+// compatible, then use one subdirectory per phone number for new pairings.
+const savedSessionKeys = fs.readdirSync(SESSION_DIR, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && hasCredentials(join(SESSION_DIR, entry.name)))
+    .map(entry => entry.name)
+if (hasCredentials(SESSION_DIR)) savedSessionKeys.unshift('default')
+if (!savedSessionKeys.length) savedSessionKeys.push('default')
+Promise.all(savedSessionKeys.map(key => startXeonBotInc('', key).catch(error => {
+    console.error(`Failed to restore session ${key}:`, error)
+}))).catch(error => console.error('Session restore error:', error))
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err)
 })
@@ -511,7 +555,7 @@ async function shutdown(signal) {
     if (reconnectTimer) clearTimeout(reconnectTimer)
     if (pairingServer) pairingServer.close()
     try {
-        await currentSocket?.ws?.close()
+        await Promise.all([...sockets.values()].map(socket => socket.ws?.close()))
     } catch (error) {
         console.error('Error while closing WhatsApp connection:', error.message)
     }

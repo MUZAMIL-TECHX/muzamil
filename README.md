@@ -85,20 +85,32 @@ enter your WhatsApp number with country code (without `+` or spaces), and select
 **GET KNIGHT PAIR CODE**. In WhatsApp, open **Linked Devices → Link a Device**, then
 enter the displayed code.
 
-The bot stores credentials in `session/`. For persistence across Railway redeploys or
+The bot stores credentials in `session/`. Each paired WhatsApp number gets an independent
+directory under `session/<phone-number>/`, so multiple people can pair and run the bot
+at the same time. The original root `session/` format remains supported for upgrades.
+For persistence across Railway redeploys or
 restarts, attach a Railway Volume mounted at `/app/session` and set `SESSION_DIR=/app/session`.
 Without a persistent volume, pairing must be repeated after the service filesystem is reset.
 
-The JSON endpoints are also available at `/health`, `/status`, and `/code?number=...`.
+The JSON endpoints are also available at `/health`, `/status?number=...`,
+`/sessions`, and `/code?number=...`. `/status` and `/sessions` report each account
+independently.
 The service listens on Railway's `PORT` environment variable.
 
 Optional environment variables:
 
 - `OWNER_NUMBER` — owner number with country code, without `+` or spaces.
 - `PHONE_NUMBER` — automatically request a pairing code on startup.
+- `PAIRING_API_URL` or `PUBLIC_URL` — public URL used by the `.pair` command to
+  request a code from this deployment. Set it when the bot is not using the
+  default public URL.
 - `GIPHY_API_KEY` and other API keys — enable optional API-powered commands.
 
 ### Existing session behavior
+
+If a number already has a saved session, the service only rejects that same number;
+other numbers can still pair normally. Use a different number or remove that
+number's session directory when re-linking it.
 
 ---
 
