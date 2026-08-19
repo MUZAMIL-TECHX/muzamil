@@ -10,7 +10,7 @@ async function helpCommand(sock, chatId, message) {
     });
 
     const helpMessage = `
-╭━━━〔 👤 *${sock.botname || settings.botName || 'MUZAMIL-XD'}* 〕━━━┈⊷
+╭━━━〔 👤 *${sock.botname || 'MUZAMIL-XD'}* 〕━━━┈⊷
 ┃ ❍ Version  : ${settings.version || '3.0.7'}
 ┃ ❍ Owner    : ${settings.botOwner || 'Muzamil Khan'}
 ┃ ❍ YouTube  : ${global.ytch || 'TeamRedXhackers'}
