@@ -10,7 +10,7 @@ async function helpCommand(sock, chatId, message) {
     });
 
     const helpMessage = `
-╭━━━〔 👤 *${settings.botName || 'MUZAMIL-XD'}* 〕━━━┈⊷
+╭━━━〔 👤 *${sock.botname || settings.botName || 'MUZAMIL-XD'}* 〕━━━┈⊷
 ┃ ❍ Version  : ${settings.version || '3.0.7'}
 ┃ ❍ Owner    : ${settings.botOwner || 'Muzamil Khan'}
 ┃ ❍ YouTube  : ${global.ytch || 'TeamRedXhackers'}
@@ -77,6 +77,8 @@ async function helpCommand(sock, chatId, message) {
 
 ╭━━━〔 🔒 *OWNER MENU* 〕━━━┈⊷
 ┃ ❍ .mode [public/private]
+┃ ❍ .botname [name]
+┃ ❍ .botdp [image URL]
 ┃ ❍ .clearsession
 ┃ ❍ .antidelete [on/off]
 ┃ ❍ .cleartmp
@@ -224,9 +226,9 @@ async function helpCommand(sock, chatId, message) {
 > 𝐂𝐑𝐄𝐀𝐓𝐄𝐑: ${settings.botOwner || 'Muzamil Khan'}`;
 
     try {
-        const imageUrl = typeof global.botImageUrl === 'string'
-            ? global.botImageUrl.trim()
-            : '';
+        const imageUrl = typeof sock.botImageUrl === 'string'
+            ? sock.botImageUrl.trim()
+            : (typeof global.botImageUrl === 'string' ? global.botImageUrl.trim() : '');
 
         if (imageUrl) {
             await sock.sendMessage(chatId, {

@@ -10,6 +10,7 @@ function readJsonSafe(path, fallback) {
 }
 
 const isOwnerOrSudo = require('../lib/isOwner');
+const { readSessionJson } = require('../lib/session_data');
 
 async function addReaction(sock, message, emoji) {
     try {
@@ -38,15 +39,13 @@ async function settingsCommand(sock, chatId, message) {
         }
 
         const isGroup = chatId.endsWith('@g.us');
-        const dataDir = './data';
-
-        const mode = readJsonSafe(`${dataDir}/messageCount.json`, { isPublic: true });
-        const autoStatus = readJsonSafe(`${dataDir}/autoStatus.json`, { enabled: false });
-        const autoread = readJsonSafe(`${dataDir}/autoread.json`, { enabled: false });
-        const autotyping = readJsonSafe(`${dataDir}/autotyping.json`, { enabled: false });
-        const pmblocker = readJsonSafe(`${dataDir}/pmblocker.json`, { enabled: false });
-        const anticall = readJsonSafe(`${dataDir}/anticall.json`, { enabled: false });
-        const userGroupData = readJsonSafe(`${dataDir}/userGroupData.json`, {
+        const mode = readSessionJson(sock, 'messageCount.json', { isPublic: true });
+        const autoStatus = readSessionJson(sock, 'autoStatus.json', { enabled: false });
+        const autoread = readSessionJson(sock, 'autoread.json', { enabled: false });
+        const autotyping = readSessionJson(sock, 'autotyping.json', { enabled: false });
+        const pmblocker = readSessionJson(sock, 'pmblocker.json', { enabled: false });
+        const anticall = readSessionJson(sock, 'anticall.json', { enabled: false });
+        const userGroupData = readSessionJson(sock, 'userGroupData.json', {
             antilink: {}, antibadword: {}, welcome: {}, goodbye: {}, chatbot: {}, antitag: {}
         });
         const autoReaction = Boolean(userGroupData.autoReaction);
@@ -60,8 +59,10 @@ async function settingsCommand(sock, chatId, message) {
         const antitagCfg = groupId ? (userGroupData.antitag && userGroupData.antitag[groupId]) : null;
 
         // Build settings message - MENU STYLE
+        const branding = readSessionJson(sock, 'branding.json', {});
         let settingsMsg = `
 ╭━━━〔 ⚙️ *BOT SETTINGS* 〕━━━┈⊷
+┃ ❍ Bot Name  : ${branding.name || sock.botname || 'KNIGHT BOT'}
 ┃ ❍ Mode     : ${mode.isPublic ? 'Public' : 'Private'}
 ┃ ❍ Auto Status : ${autoStatus.enabled ? 'ON' : 'OFF'}
 ┃ ❍ Autoread    : ${autoread.enabled ? 'ON' : 'OFF'}
