@@ -26,7 +26,7 @@ setInterval(() => {
 }, 3 * 60 * 60 * 1000);
 
 const settings = require('./settings');
-const { readSessionJson, writeSessionJson } = require('./lib/session_data');
+const { readSessionJson, writeSessionJson, getSessionSettings, updateSessionSettings } = require('./lib/session_data');
 require('./config.js');
 const { isBanned } = require('./lib/isBanned');
 const yts = require('yt-search');
@@ -193,7 +193,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
         const chatId = message.key.remoteJid;
         const senderId = message.key.participant || message.key.remoteJid;
         const isGroup = chatId.endsWith('@g.us');
-        const senderIsSudo = await isSudo(senderId);
+        const senderIsSudo = await isSudo(senderId, sock);
         const senderIsOwnerOrSudo = await isOwnerOrSudo(senderId, sock, chatId);
 
         // Handle button responses
@@ -247,7 +247,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
         const isPublic = typeof modeData.isPublic === 'boolean' ? modeData.isPublic : true;
         const isOwnerOrSudoCheck = message.key.fromMe || senderIsOwnerOrSudo;
         // Check if user is banned (skip ban check for unban command)
-        if (isBanned(senderId) && !userMessage.startsWith('.unban')) {
+        if (isBanned(senderId, sock) && !userMessage.startsWith('.unban')) {
             // Only respond occasionally to avoid spam
             if (Math.random() < 0.1) {
                 await sock.sendMessage(chatId, {
@@ -326,7 +326,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
         const isAdminCommand = adminCommands.some(cmd => userMessage.startsWith(cmd));
 
         // List of owner commands
-        const ownerCommands = ['.mode', '.botdp', '.botname', '.autostatus', '.antidelete', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker'];
+        const ownerCommands = ['.mode', '.botdp', '.botname', '.ownernumber', '.ownername', '.description', '.autostatus', '.antidelete', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker'];
         const isOwnerCommand = ownerCommands.some(cmd => userMessage.startsWith(cmd));
 
         let isSenderAdmin = false;
@@ -522,9 +522,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
                         }, { quoted: message });
                         break;
                     }
-                    const branding = readSessionJson(sock, 'branding.json', {});
-                    branding.name = botName;
-                    writeSessionJson(sock, 'branding.json', branding);
+                    updateSessionSettings(sock, { botName });
                     sock.botname = botName;
                     await sock.sendMessage(chatId, {
                         text: `✅ This session bot name is now: *${botName}*`,
@@ -542,14 +540,45 @@ async function handleMessages(sock, messageUpdate, printLog) {
                         }, { quoted: message });
                         break;
                     }
-                    const branding = readSessionJson(sock, 'branding.json', {});
-                    branding.imageUrl = imageUrl;
-                    writeSessionJson(sock, 'branding.json', branding);
+                    updateSessionSettings(sock, { botDp: imageUrl });
                     sock.botImageUrl = imageUrl;
                     await sock.sendMessage(chatId, {
                         text: '✅ This session bot DP URL has been updated.',
                         ...channelInfo
                     }, { quoted: message });
+                }
+                break;
+            case userMessage.startsWith('.ownernumber'):
+                {
+                    const ownerNumber = rawText.slice('.ownernumber'.length).trim().replace(/[^\d]/g, '');
+                    if (!/^\d{7,15}$/.test(ownerNumber)) {
+                        await sock.sendMessage(chatId, { text: 'Usage: .ownernumber <country code + number, digits only>', ...channelInfo }, { quoted: message });
+                        break;
+                    }
+                    updateSessionSettings(sock, { ownerNumber });
+                    await sock.sendMessage(chatId, { text: `✅ This session owner number is now: *${ownerNumber}*`, ...channelInfo }, { quoted: message });
+                }
+                break;
+            case userMessage.startsWith('.ownername'):
+                {
+                    const ownerName = rawText.slice('.ownername'.length).trim();
+                    if (!ownerName || ownerName.length > 80) {
+                        await sock.sendMessage(chatId, { text: 'Usage: .ownername <name> (maximum 80 characters)', ...channelInfo }, { quoted: message });
+                        break;
+                    }
+                    updateSessionSettings(sock, { ownerName });
+                    await sock.sendMessage(chatId, { text: `✅ This session owner name is now: *${ownerName}*`, ...channelInfo }, { quoted: message });
+                }
+                break;
+            case userMessage.startsWith('.description'):
+                {
+                    const description = rawText.slice('.description'.length).trim();
+                    if (!description || description.length > 500) {
+                        await sock.sendMessage(chatId, { text: 'Usage: .description <text> (maximum 500 characters)', ...channelInfo }, { quoted: message });
+                        break;
+                    }
+                    updateSessionSettings(sock, { description });
+                    await sock.sendMessage(chatId, { text: '✅ This session description has been updated.', ...channelInfo }, { quoted: message });
                 }
                 break;
             case userMessage.startsWith('.anticall'):

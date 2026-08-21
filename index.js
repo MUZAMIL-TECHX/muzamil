@@ -54,7 +54,7 @@ fs.mkdirSync(SESSION_DIR, { recursive: true })
 
 // Import lightweight store
 const store = require('./lib/lightweight_store')
-const { ensureSessionDataDir, readSessionJson } = require('./lib/session_data')
+const { ensureSessionDataDir, readSessionJson, getSessionSettings } = require('./lib/session_data')
 
 const settings = require('./settings')
 
@@ -78,7 +78,7 @@ setInterval(() => {
 let phoneNumber = process.env.PHONE_NUMBER || ""
 let owner = JSON.parse(fs.readFileSync(join(DATA_DIR, 'owner.json')))
 
-global.botname = "KNIGHT BOT"
+global.botname = "MUZAMIL-XD"
 global.themeemoji = "•"
 // Menu DP: paste any public image URL here. No local assets folder is required.
 global.botImageUrl = "https://i.ibb.co/yz79pyg/1000040527.png"
@@ -176,9 +176,17 @@ async function startXeonBotInc(requestedPhoneNumber = '', requestedSessionKey = 
         XeonBotInc.sessionStore = sessionStore
         XeonBotInc.dataDir = join(authDir, 'data')
         ensureSessionDataDir(XeonBotInc)
-        const branding = readSessionJson(XeonBotInc, 'branding.json', {})
-        XeonBotInc.botname = branding.name || 'KNIGHT BOT'
-        XeonBotInc.botImageUrl = branding.imageUrl || global.botImageUrl
+        const legacyBranding = readSessionJson(XeonBotInc, 'branding.json', {})
+        const sessionSettings = {
+            ...getSessionSettings(XeonBotInc),
+            ...(legacyBranding.name ? { botName: legacyBranding.name } : {}),
+            ...(legacyBranding.imageUrl ? { botDp: legacyBranding.imageUrl } : {})
+        }
+        XeonBotInc.botname = sessionSettings.botName
+        XeonBotInc.botImageUrl = sessionSettings.botDp
+        XeonBotInc.ownerNumber = sessionSettings.ownerNumber
+        XeonBotInc.ownerName = sessionSettings.ownerName
+        XeonBotInc.description = sessionSettings.description
         // Keep this small compatibility surface for the pairing web server.
         XeonBotInc.authState = { creds: state.creds }
 
@@ -268,6 +276,7 @@ async function startXeonBotInc(requestedPhoneNumber = '', requestedSessionKey = 
     }
 
         const mode = readSessionJson(XeonBotInc, 'messageCount.json', { isPublic: true })
+        XeonBotInc.public = mode.isPublic !== false
         XeonBotInc.public = mode.isPublic !== false
 
     XeonBotInc.serializeM = (m) => smsg(XeonBotInc, m, sessionStore)
@@ -508,7 +517,7 @@ function startPairingServer() {
     app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'pair.html')))
     app.get('/health', (_req, res) => res.json({
         status: 'ok',
-        bot: global.botname || 'KNIGHT BOT',
+        bot: global.botname || 'MUZAMIL-XD',
         connected: [...sockets.values()].some(socket => socket.authState?.creds?.registered),
         sessions: sockets.size
     }))

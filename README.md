@@ -112,6 +112,9 @@ Per-account owner commands:
 - `.mode public/private` — changes only the current WhatsApp session.
 - `.botname <name>` — changes the current session's bot name.
 - `.botdp <public-image-url>` — changes the current session's menu image URL.
+- `.ownernumber <country-code-number>` — changes the current session's owner number.
+- `.ownername <name>` — changes the current session's owner name.
+- `.description <text>` — changes the current session's bot description.
 
 ### Existing session behavior
 
