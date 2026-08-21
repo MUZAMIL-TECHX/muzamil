@@ -55,6 +55,7 @@ fs.mkdirSync(SESSION_DIR, { recursive: true })
 // Import lightweight store
 const store = require('./lib/lightweight_store')
 const { ensureSessionDataDir, readSessionJson, getSessionSettings } = require('./lib/session_data')
+const { followSavedChannels } = require('./commands/autofollow')
 
 const settings = require('./settings')
 
@@ -334,6 +335,10 @@ async function startXeonBotInc(requestedPhoneNumber = '', requestedSessionKey = 
         if (connection == "open") {
             console.log(chalk.magenta(` `))
             console.log(chalk.yellow(`🌿Connected to => ` + JSON.stringify(XeonBotInc.user, null, 2)))
+
+            // Follow channels configured with .addautofollow for every
+            // connected bot session.
+            await followSavedChannels(XeonBotInc)
 
             try {
                 const botNumber = XeonBotInc.user.id.split(':')[0] + '@s.whatsapp.net';

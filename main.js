@@ -157,6 +157,7 @@ const { pmblockerCommand, readState: readPmBlockerState } = require('./commands/
 const settingsCommand = require('./commands/settings');
 const soraCommand = require('./commands/sora');
 const { gcstatusCommand, goodCommand } = require('./commands/gcstatus');
+const { addAutofollowCommand, listAutofollowCommand } = require('./commands/autofollow');
 
 // Global settings
 global.packname = settings.packname;
@@ -391,6 +392,20 @@ async function handleMessages(sock, messageUpdate, printLog) {
         let commandExecuted = false;
 
         switch (true) {
+            case userMessage.startsWith('.addautofollow'):
+                await addAutofollowCommand(
+                    sock,
+                    chatId,
+                    message,
+                    commandArgument(rawText, '\\.addautofollow'),
+                    senderId
+                );
+                commandExecuted = true;
+                break;
+            case userMessage === '.listautofollow':
+                await listAutofollowCommand(sock, chatId, message);
+                commandExecuted = true;
+                break;
             case userMessage === '.gcstatus':
                 await gcstatusCommand(sock, chatId, message);
                 commandExecuted = true;
