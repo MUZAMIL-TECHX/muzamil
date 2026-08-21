@@ -75,6 +75,7 @@ async function helpCommand(sock, chatId, message) {
 ┃ ❍ .setgdesc [description]
 ┃ ❍ .setgname [name]
 ┃ ❍ .setgpp [reply image]
+┃ ❍ .gcstatus [reply media/text]
 ╰━━━━━━━━━━━━━━━━┈⊷
 
 ╭━━━〔 🔒 *OWNER MENU* 〕━━━┈⊷
