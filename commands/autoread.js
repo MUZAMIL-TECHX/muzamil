@@ -163,27 +163,38 @@ function isBotMentionedInMessage(message, botNumber) {
 
 // Function to handle autoread functionality
 async function handleAutoread(sock, message) {
-    if (isAutoreadEnabled(sock)) {
-        // Get bot's ID
-        const botNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-        
-        // Check if bot is mentioned
-        const isBotMentioned = isBotMentionedInMessage(message, botNumber);
-        
-        // If bot is mentioned, read the message internally but don't mark as read in UI
-        if (isBotMentioned) {
-            
-            // We don't call sock.readMessages() here, so the message stays unread in the UI
-            return false; // Indicates message was not marked as read
-        } else {
-            // For regular messages, mark as read normally
-            const key = { remoteJid: message.key.remoteJid, id: message.key.id, participant: message.key.participant };
-            await sock.readMessages([key]);
-            //console.log('✅ Marked message as read from ' + (message.key.participant || message.key.remoteJid).split('@')[0]);
-            return true; // Indicates message was marked as read
+    try {
+        if (!isAutoreadEnabled(sock)) return false;
+
+        // Never try to mark the bot's own outgoing message as read. This is
+        // important for ".autoread off": that command is itself a self-message
+        // and WhatsApp can reject readMessages() for it.
+        if (message?.key?.fromMe) return false;
+        if (!message?.key?.remoteJid || !message?.key?.id || typeof sock.readMessages !== 'function') {
+            return false;
         }
+
+        const botId = sock.user?.id || '';
+        const botNumber = botId
+            ? botId.split(':')[0].split('@')[0] + '@s.whatsapp.net'
+            : '';
+
+        // Mentioned messages intentionally remain unread in the UI.
+        if (botNumber && isBotMentionedInMessage(message, botNumber)) return false;
+
+        const key = {
+            remoteJid: message.key.remoteJid,
+            id: message.key.id,
+            participant: message.key.participant
+        };
+        await sock.readMessages([key]);
+        return true;
+    } catch (error) {
+        // Autoread is an optional side effect. A read receipt failure must
+        // never stop command processing or make normal messages fail.
+        console.error('⚠️ Autoread skipped:', error?.message || error);
+        return false;
     }
-    return false; // Autoread is disabled
 }
 
 module.exports = {
