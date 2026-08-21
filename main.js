@@ -40,6 +40,13 @@ const isOwnerOrSudo = require('./lib/isOwner');
 const { autotypingCommand, isAutotypingEnabled, handleAutotypingForMessage, handleAutotypingForCommand, showTypingAfterCommand } = require('./commands/autotyping');
 const { autoreadCommand, isAutoreadEnabled, handleAutoread } = require('./commands/autoread');
 
+// Extract arguments without depending on the user's command casing.
+// This also prevents ".ownernamex" from being treated as ".ownername".
+function commandArgument(rawText, command) {
+    const match = String(rawText || '').match(new RegExp(`^${command}\\b\\s*(.*)$`, 'i'));
+    return match ? match[1].trim() : '';
+}
+
 // Command imports
 const { ytsCommand, processYtsReply } = require('./commands/yts');
 const simdataCommand = require('./commands/simdata');
@@ -327,7 +334,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
 
         // List of owner commands
         const ownerCommands = ['.mode', '.botdp', '.botname', '.ownernumber', '.ownername', '.description', '.autostatus', '.antidelete', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker'];
-        const isOwnerCommand = ownerCommands.some(cmd => userMessage.startsWith(cmd));
+        const isOwnerCommand = ownerCommands.some(cmd => new RegExp(`^${cmd}\\b`, 'i').test(rawText));
 
         let isSenderAdmin = false;
         let isBotAdmin = false;
@@ -548,36 +555,39 @@ async function handleMessages(sock, messageUpdate, printLog) {
                     }, { quoted: message });
                 }
                 break;
-            case userMessage.startsWith('.ownernumber'):
+            case userMessage === '.ownernumber' || userMessage.startsWith('.ownernumber '):
                 {
-                    const ownerNumber = rawText.slice('.ownernumber'.length).trim().replace(/[^\d]/g, '');
+                    const ownerNumber = commandArgument(rawText, '\\.ownernumber').replace(/[^\d]/g, '');
                     if (!/^\d{7,15}$/.test(ownerNumber)) {
                         await sock.sendMessage(chatId, { text: 'Usage: .ownernumber <country code + number, digits only>', ...channelInfo }, { quoted: message });
                         break;
                     }
                     updateSessionSettings(sock, { ownerNumber });
+                    sock.ownerNumber = ownerNumber;
                     await sock.sendMessage(chatId, { text: `✅ This session owner number is now: *${ownerNumber}*`, ...channelInfo }, { quoted: message });
                 }
                 break;
-            case userMessage.startsWith('.ownername'):
+            case userMessage === '.ownername' || userMessage.startsWith('.ownername '):
                 {
-                    const ownerName = rawText.slice('.ownername'.length).trim();
+                    const ownerName = commandArgument(rawText, '\\.ownername');
                     if (!ownerName || ownerName.length > 80) {
                         await sock.sendMessage(chatId, { text: 'Usage: .ownername <name> (maximum 80 characters)', ...channelInfo }, { quoted: message });
                         break;
                     }
                     updateSessionSettings(sock, { ownerName });
+                    sock.ownerName = ownerName;
                     await sock.sendMessage(chatId, { text: `✅ This session owner name is now: *${ownerName}*`, ...channelInfo }, { quoted: message });
                 }
                 break;
-            case userMessage.startsWith('.description'):
+            case userMessage === '.description' || userMessage.startsWith('.description '):
                 {
-                    const description = rawText.slice('.description'.length).trim();
+                    const description = commandArgument(rawText, '\\.description');
                     if (!description || description.length > 500) {
                         await sock.sendMessage(chatId, { text: 'Usage: .description <text> (maximum 500 characters)', ...channelInfo }, { quoted: message });
                         break;
                     }
                     updateSessionSettings(sock, { description });
+                    sock.description = description;
                     await sock.sendMessage(chatId, { text: '✅ This session description has been updated.', ...channelInfo }, { quoted: message });
                 }
                 break;

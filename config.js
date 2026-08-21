@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 global.APIs = {
     xteam: 'https://api.xteam.xyz',
     dzx: 'https://api.dhamzxploit.my.id',

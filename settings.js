@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 const settings = {
   packname: 'MUZAMIL-XD',
   author: 'Muzamil Khan',
