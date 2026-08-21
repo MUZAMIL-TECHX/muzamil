@@ -3,19 +3,15 @@
  * Autoread Command - Automatically read all messages
  */
 
-const fs = require('fs');
-const path = require('path');
 const isOwnerOrSudo = require('../lib/isOwner');
+const { readSessionJson, writeSessionJson } = require('../lib/session_data');
 
 // Path to store the configuration
-const configPath = path.join(__dirname, '..', 'data', 'autoread.json');
+// Settings are stored below the connected socket's session directory.
 
 // Initialize configuration file if it doesn't exist
-function initConfig() {
-    if (!fs.existsSync(configPath)) {
-        fs.writeFileSync(configPath, JSON.stringify({ enabled: false }, null, 2));
-    }
-    return JSON.parse(fs.readFileSync(configPath));
+function initConfig(sock) {
+    return readSessionJson(sock, 'autoread.json', { enabled: false });
 }
 
 // Toggle autoread feature
@@ -46,7 +42,7 @@ async function autoreadCommand(sock, chatId, message) {
                     [];
         
         // Initialize or read config
-        const config = initConfig();
+        const config = initConfig(sock);
         
         // Toggle based on argument or toggle current state if no argument
         if (args.length > 0) {
@@ -76,7 +72,7 @@ async function autoreadCommand(sock, chatId, message) {
         }
         
         // Save updated configuration
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+        writeSessionJson(sock, 'autoread.json', config);
         
         // Send confirmation message
         await sock.sendMessage(chatId, {
@@ -110,9 +106,9 @@ async function autoreadCommand(sock, chatId, message) {
 }
 
 // Function to check if autoread is enabled
-function isAutoreadEnabled() {
+function isAutoreadEnabled(sock) {
     try {
-        const config = initConfig();
+        const config = initConfig(sock);
         return config.enabled;
     } catch (error) {
         console.error('Error checking autoread status:', error);
@@ -155,7 +151,7 @@ function isBotMentionedInMessage(message, botNumber) {
         }
         
         // Check for bot name mentions (optional, can be customized)
-        const botNames = [global.botname?.toLowerCase(), 'bot', 'knight', 'knight bot'];
+        const botNames = [sock.botname?.toLowerCase(), 'bot', 'knight', 'knight bot'];
         const words = textContent.toLowerCase().split(/\s+/);
         if (botNames.some(name => words.includes(name))) {
             return true;
@@ -167,7 +163,7 @@ function isBotMentionedInMessage(message, botNumber) {
 
 // Function to handle autoread functionality
 async function handleAutoread(sock, message) {
-    if (isAutoreadEnabled()) {
+    if (isAutoreadEnabled(sock)) {
         // Get bot's ID
         const botNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
         

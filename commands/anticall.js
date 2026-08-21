@@ -1,27 +1,15 @@
-const fs = require('fs');
+const { readSessionJson, writeSessionJson } = require('../lib/session_data');
 
-const ANTICALL_PATH = './data/anticall.json';
-
-function readState() {
-    try {
-        if (!fs.existsSync(ANTICALL_PATH)) return { enabled: false };
-        const raw = fs.readFileSync(ANTICALL_PATH, 'utf8');
-        const data = JSON.parse(raw || '{}');
-        return { enabled: !!data.enabled };
-    } catch {
-        return { enabled: false };
-    }
+function readState(sock) {
+    return readSessionJson(sock, 'anticall.json', { enabled: false });
 }
 
-function writeState(enabled) {
-    try {
-        if (!fs.existsSync('./data')) fs.mkdirSync('./data', { recursive: true });
-        fs.writeFileSync(ANTICALL_PATH, JSON.stringify({ enabled: !!enabled }, null, 2));
-    } catch {}
+function writeState(sock, enabled) {
+    writeSessionJson(sock, 'anticall.json', { enabled: !!enabled });
 }
 
 async function anticallCommand(sock, chatId, message, args) {
-    const state = readState();
+    const state = readState(sock);
     const sub = (args || '').trim().toLowerCase();
 
     if (!sub || (sub !== 'on' && sub !== 'off' && sub !== 'status')) {
@@ -35,7 +23,7 @@ async function anticallCommand(sock, chatId, message, args) {
     }
 
     const enable = sub === 'on';
-    writeState(enable);
+    writeState(sock, enable);
     await sock.sendMessage(chatId, { text: `Anticall is now *${enable ? 'ENABLED' : 'DISABLED'}*.` }, { quoted: message });
 }
 

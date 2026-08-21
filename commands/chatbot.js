@@ -1,8 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const fetch = require('node-fetch');
-
-const USER_GROUP_DATA = path.join(__dirname, '../data/userGroupData.json');
+const { readSessionJson, writeSessionJson } = require('../lib/session_data');
 
 // In-memory storage for chat history and user info
 const chatMemory = {
@@ -11,22 +8,13 @@ const chatMemory = {
 };
 
 // Load user group data
-function loadUserGroupData() {
-    try {
-        return JSON.parse(fs.readFileSync(USER_GROUP_DATA));
-    } catch (error) {
-        console.error('❌ Error loading user group data:', error.message);
-        return { groups: [], chatbot: {} };
-    }
+function loadUserGroupData(sock) {
+    return readSessionJson(sock, 'userGroupData.json', { groups: [], chatbot: {} });
 }
 
 // Save user group data
-function saveUserGroupData(data) {
-    try {
-        fs.writeFileSync(USER_GROUP_DATA, JSON.stringify(data, null, 2));
-    } catch (error) {
-        console.error('❌ Error saving user group data:', error.message);
-    }
+function saveUserGroupData(data, sock) {
+    writeSessionJson(sock, 'userGroupData.json', data);
 }
 
 // Add random delay between 2-5 seconds
@@ -76,7 +64,7 @@ async function handleChatbotCommand(sock, chatId, message, match) {
         });
     }
 
-    const data = loadUserGroupData();
+    const data = loadUserGroupData(sock);
     
     // Get bot's number
     const botNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
@@ -96,7 +84,7 @@ async function handleChatbotCommand(sock, chatId, message, match) {
                 });
             }
             data.chatbot[chatId] = true;
-            saveUserGroupData(data);
+            saveUserGroupData(data, sock);
             console.log(`✅ Chatbot enabled for group ${chatId}`);
             return sock.sendMessage(chatId, { 
                 text: '*Chatbot has been enabled for this group*',
@@ -113,7 +101,7 @@ async function handleChatbotCommand(sock, chatId, message, match) {
                 });
             }
             delete data.chatbot[chatId];
-            saveUserGroupData(data);
+            saveUserGroupData(data, sock);
             console.log(`✅ Chatbot disabled for group ${chatId}`);
             return sock.sendMessage(chatId, { 
                 text: '*Chatbot has been disabled for this group*',
@@ -150,7 +138,7 @@ async function handleChatbotCommand(sock, chatId, message, match) {
             });
         }
         data.chatbot[chatId] = true;
-        saveUserGroupData(data);
+        saveUserGroupData(data, sock);
         console.log(`✅ Chatbot enabled for group ${chatId}`);
         return sock.sendMessage(chatId, { 
             text: '*Chatbot has been enabled for this group*',
@@ -167,7 +155,7 @@ async function handleChatbotCommand(sock, chatId, message, match) {
             });
         }
         delete data.chatbot[chatId];
-        saveUserGroupData(data);
+        saveUserGroupData(data, sock);
         console.log(`✅ Chatbot disabled for group ${chatId}`);
         return sock.sendMessage(chatId, { 
             text: '*Chatbot has been disabled for this group*',
@@ -183,7 +171,7 @@ async function handleChatbotCommand(sock, chatId, message, match) {
 }
 
 async function handleChatbotResponse(sock, chatId, message, userMessage, senderId) {
-    const data = loadUserGroupData();
+    const data = loadUserGroupData(sock);
     if (!data.chatbot[chatId]) return;
 
     try {

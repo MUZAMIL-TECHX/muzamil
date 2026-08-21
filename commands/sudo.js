@@ -1,6 +1,6 @@
-const settings = require('../settings');
 const { addSudo, removeSudo, getSudoList } = require('../lib/index');
 const isOwnerOrSudo = require('../lib/isOwner');
+const { getSessionSettings } = require('../lib/session_data');
 
 function extractMentionedJid(message) {
     const mentioned = message.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
@@ -25,7 +25,7 @@ async function sudoCommand(sock, chatId, message) {
     }
 
     if (sub === 'list') {
-        const list = await getSudoList();
+        const list = await getSudoList(sock);
         if (list.length === 0) {
             await sock.sendMessage(chatId, { text: 'No sudo users set.' },{quoted :message});
             return;
@@ -47,18 +47,18 @@ async function sudoCommand(sock, chatId, message) {
     }
 
     if (sub === 'add') {
-        const ok = await addSudo(targetJid);
+        const ok = await addSudo(targetJid, sock);
         await sock.sendMessage(chatId, { text: ok ? `✅ Added sudo: ${targetJid}` : '❌ Failed to add sudo' },{quoted :message});
         return;
     }
 
     if (sub === 'del' || sub === 'remove') {
-        const ownerJid = settings.ownerNumber + '@s.whatsapp.net';
+        const ownerJid = getSessionSettings(sock).ownerNumber + '@s.whatsapp.net';
         if (targetJid === ownerJid) {
             await sock.sendMessage(chatId, { text: 'Owner cannot be removed.' },{quoted :message});
             return;
         }
-        const ok = await removeSudo(targetJid);
+        const ok = await removeSudo(targetJid, sock);
         await sock.sendMessage(chatId, { text: ok ? `✅ Removed sudo: ${targetJid}` : '❌ Failed to remove sudo' },{quoted :message});
         return;
     }

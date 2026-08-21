@@ -59,7 +59,7 @@ async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSend
         switch (action) {
             case 'on': {
                 await addReaction(sock, message, '✅');
-                const existingConfig = await getAntilink(chatId, 'on');
+                const existingConfig = await getAntilink(chatId, 'on', sock);
                 if (existingConfig?.enabled) {
                     await sock.sendMessage(chatId, {
                         text: `
@@ -73,7 +73,7 @@ async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSend
                     }, { quoted: message });
                     return;
                 }
-                const result = await setAntilink(chatId, 'on', 'delete');
+                const result = await setAntilink(chatId, 'on', 'delete', sock);
                 if (result) {
                     await sock.sendMessage(chatId, {
                         text: `
@@ -101,7 +101,7 @@ async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSend
 
             case 'off': {
                 await addReaction(sock, message, '❌');
-                await removeAntilink(chatId, 'on');
+                await removeAntilink(chatId, 'on', sock);
                 await sock.sendMessage(chatId, {
                     text: `
 ╭━━━〔 ❌ *ANTILINK DISABLED* 〕━━━┈⊷
@@ -141,7 +141,7 @@ async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSend
                     }, { quoted: message });
                     return;
                 }
-                const setResult = await setAntilink(chatId, 'on', setAction);
+                const setResult = await setAntilink(chatId, 'on', setAction, sock);
                 if (setResult) {
                     const actionEmoji = setAction === 'delete' ? '🗑️' : setAction === 'kick' ? '👢' : '⚠️';
                     await sock.sendMessage(chatId, {
@@ -169,8 +169,8 @@ async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSend
 
             case 'get': {
                 await addReaction(sock, message, '📊');
-                const status = await getAntilink(chatId, 'on');
-                const actionConfig = await getAntilink(chatId, 'on');
+                const status = await getAntilink(chatId, 'on', sock);
+                const actionConfig = await getAntilink(chatId, 'on', sock);
                 
                 const statusEmoji = status?.enabled ? '🟢' : '🔴';
                 const actionEmoji = actionConfig?.action === 'delete' ? '🗑️' : 
@@ -217,8 +217,8 @@ async function handleAntilinkCommand(sock, chatId, userMessage, senderId, isSend
 }
 
 async function handleLinkDetection(sock, chatId, message, userMessage, senderId) {
-    const antilinkSetting = getAntilinkSetting(chatId);
-    if (antilinkSetting === 'off') return;
+    const antilinkConfig = await getAntilink(chatId, 'on', sock);
+    if (!antilinkConfig?.enabled) return;
 
     let shouldDelete = false;
 
@@ -229,15 +229,7 @@ async function handleLinkDetection(sock, chatId, message, userMessage, senderId)
         allLinks: /https?:\/\/\S+|www\.\S+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/\S*)?/i,
     };
 
-    if (antilinkSetting === 'whatsappGroup') {
-        if (linkPatterns.whatsappGroup.test(userMessage)) {
-            shouldDelete = true;
-        }
-    } else if (antilinkSetting === 'whatsappChannel' && linkPatterns.whatsappChannel.test(userMessage)) {
-        shouldDelete = true;
-    } else if (antilinkSetting === 'telegram' && linkPatterns.telegram.test(userMessage)) {
-        shouldDelete = true;
-    } else if (antilinkSetting === 'allLinks' && linkPatterns.allLinks.test(userMessage)) {
+    if (linkPatterns.allLinks.test(userMessage)) {
         shouldDelete = true;
     }
 
@@ -255,7 +247,7 @@ async function handleLinkDetection(sock, chatId, message, userMessage, senderId)
 
         const mentionedJidList = [senderId];
         
-        const config = await getAntilink(chatId, 'on');
+        const config = await getAntilink(chatId, 'on', sock);
         const action = config?.action || 'delete';
 
         let warningMessage = '';

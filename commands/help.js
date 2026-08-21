@@ -1,6 +1,8 @@
 const settings = require('../settings');
+const { getSessionSettings } = require('../lib/session_data');
 
 async function helpCommand(sock, chatId, message) {
+    const sessionSettings = getSessionSettings(sock);
     // Add reaction to the message
     await sock.sendMessage(chatId, {
         react: {
@@ -12,7 +14,7 @@ async function helpCommand(sock, chatId, message) {
     const helpMessage = `
 ╭━━━〔 👤 *${sock.botname || 'MUZAMIL-XD'}* 〕━━━┈⊷
 ┃ ❍ Version  : ${settings.version || '3.0.7'}
-┃ ❍ Owner    : ${settings.botOwner || 'Muzamil Khan'}
+┃ ❍ Owner    : ${sessionSettings.ownerName}
 ┃ ❍ YouTube  : ${global.ytch || 'TeamRedXhackers'}
 ┃ ❍ Commands : All available commands
 ╰━━━━━━━━━━━━━━━━┈⊷
@@ -79,6 +81,9 @@ async function helpCommand(sock, chatId, message) {
 ┃ ❍ .mode [public/private]
 ┃ ❍ .botname [name]
 ┃ ❍ .botdp [image URL]
+┃ ❍ .ownernumber [number]
+┃ ❍ .ownername [name]
+┃ ❍ .description [text]
 ┃ ❍ .clearsession
 ┃ ❍ .antidelete [on/off]
 ┃ ❍ .cleartmp
@@ -223,7 +228,8 @@ async function helpCommand(sock, chatId, message) {
 ┃ ❍ .repo
 ╰━━━━━━━━━━━━━━━━┈⊷
 
-> 𝐂𝐑𝐄𝐀𝐓𝐄𝐑: ${settings.botOwner || 'Muzamil Khan'}`;
+> 𝐂𝐑𝐄𝐀𝐓𝐄𝐑: ${sessionSettings.ownerName}
+┃ ❍ About    : ${sessionSettings.description}`;
 
     try {
         const imageUrl = typeof sock.botImageUrl === 'string'

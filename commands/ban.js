@@ -19,7 +19,7 @@ async function banCommand(sock, chatId, message) {
         }
     } else {
         const senderId = message.key.participant || message.key.remoteJid;
-        const senderIsSudo = await isSudo(senderId);
+        const senderIsSudo = await isSudo(senderId, sock);
         if (!message.key.fromMe && !senderIsSudo) {
             await sock.sendMessage(chatId, { text: 'Only owner/sudo can use .ban in private chat', ...channelInfo }, { quoted: message });
             return;
@@ -55,10 +55,11 @@ async function banCommand(sock, chatId, message) {
 
     try {
         // Add user to banned list
-        const bannedUsers = JSON.parse(fs.readFileSync('./data/banned.json'));
+        const { readSessionJson, writeSessionJson } = require('../lib/session_data');
+        const bannedUsers = readSessionJson(sock, 'banned.json', []);
         if (!bannedUsers.includes(userToBan)) {
             bannedUsers.push(userToBan);
-            fs.writeFileSync('./data/banned.json', JSON.stringify(bannedUsers, null, 2));
+            writeSessionJson(sock, 'banned.json', bannedUsers);
             
             await sock.sendMessage(chatId, { 
                 text: `Successfully banned @${userToBan.split('@')[0]}!`,

@@ -20,7 +20,7 @@ async function unbanCommand(sock, chatId, message) {
         }
     } else {
         const senderId = message.key.participant || message.key.remoteJid;
-        const senderIsSudo = await isSudo(senderId);
+        const senderIsSudo = await isSudo(senderId, sock);
         if (!message.key.fromMe && !senderIsSudo) {
             await sock.sendMessage(chatId, { text: 'Only owner/sudo can use .unban in private chat', ...channelInfo }, { quoted: message });
             return;
@@ -46,11 +46,12 @@ async function unbanCommand(sock, chatId, message) {
     }
 
     try {
-        const bannedUsers = JSON.parse(fs.readFileSync('./data/banned.json'));
+        const { readSessionJson, writeSessionJson } = require('../lib/session_data');
+        const bannedUsers = readSessionJson(sock, 'banned.json', []);
         const index = bannedUsers.indexOf(userToUnban);
         if (index > -1) {
             bannedUsers.splice(index, 1);
-            fs.writeFileSync('./data/banned.json', JSON.stringify(bannedUsers, null, 2));
+            writeSessionJson(sock, 'banned.json', bannedUsers);
             
             await sock.sendMessage(chatId, { 
                 text: `Successfully unbanned ${userToUnban.split('@')[0]}!`,

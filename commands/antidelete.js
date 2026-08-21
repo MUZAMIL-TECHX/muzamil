@@ -3,14 +3,15 @@ const path = require('path');
 const { tmpdir } = require('os');
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const { writeFile } = require('fs/promises');
+const { readSessionJson, writeSessionJson } = require('../lib/session_data');
 
 const messageStore = new Map();
-const CONFIG_PATH = path.join(__dirname, '../data/antidelete.json');
-const TEMP_MEDIA_DIR = path.join(__dirname, '../tmp');
+const BASE_TEMP_MEDIA_DIR = path.join(__dirname, '../tmp');
+const TEMP_MEDIA_DIR = BASE_TEMP_MEDIA_DIR;
 
 // Ensure tmp dir exists
-if (!fs.existsSync(TEMP_MEDIA_DIR)) {
-    fs.mkdirSync(TEMP_MEDIA_DIR, { recursive: true });
+if (!fs.existsSync(BASE_TEMP_MEDIA_DIR)) {
+    fs.mkdirSync(BASE_TEMP_MEDIA_DIR, { recursive: true });
 }
 
 // Helper function to add reaction
@@ -68,19 +69,14 @@ const cleanTempFolderIfLarge = () => {
 setInterval(cleanTempFolderIfLarge, 60 * 1000);
 
 // Load config
-function loadAntideleteConfig() {
-    try {
-        if (!fs.existsSync(CONFIG_PATH)) return { enabled: false };
-        return JSON.parse(fs.readFileSync(CONFIG_PATH));
-    } catch {
-        return { enabled: false };
-    }
+function loadAntideleteConfig(sock) {
+    return readSessionJson(sock, 'antidelete.json', { enabled: false });
 }
 
 // Save config
-function saveAntideleteConfig(config) {
+function saveAntideleteConfig(sock, config) {
     try {
-        fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+        writeSessionJson(sock, 'antidelete.json', config);
     } catch (err) {
         console.error('Config save error:', err);
     }
@@ -103,7 +99,7 @@ async function handleAntideleteCommand(sock, chatId, message, match) {
             }, { quoted: message });
         }
 
-        const config = loadAntideleteConfig();
+        const config = loadAntideleteConfig(sock);
 
         if (!match) {
             const status = config.enabled ? '🟢 ON' : '🔴 OFF';
@@ -131,7 +127,7 @@ async function handleAntideleteCommand(sock, chatId, message, match) {
             }, { quoted: message });
         }
 
-        saveAntideleteConfig(config);
+        saveAntideleteConfig(sock, config);
         const status = match === 'on' ? '🟢 ON' : '🔴 OFF';
         return sock.sendMessage(chatId, { 
             text: `
@@ -155,7 +151,7 @@ async function handleAntideleteCommand(sock, chatId, message, match) {
 // Store incoming messages
 async function storeMessage(sock, message) {
     try {
-        const config = loadAntideleteConfig();
+        const config = loadAntideleteConfig(sock);
         if (!config.enabled) return;
 
         if (!message.key?.id) return;
@@ -251,7 +247,7 @@ async function storeMessage(sock, message) {
 // Handle message deletion
 async function handleMessageRevocation(sock, revocationMessage) {
     try {
-        const config = loadAntideleteConfig();
+        const config = loadAntideleteConfig(sock);
         if (!config.enabled) return;
 
         const messageId = revocationMessage.message.protocolMessage.key.id;

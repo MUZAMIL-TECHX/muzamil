@@ -10,7 +10,7 @@ function readJsonSafe(path, fallback) {
 }
 
 const isOwnerOrSudo = require('../lib/isOwner');
-const { readSessionJson } = require('../lib/session_data');
+const { readSessionJson, getSessionSettings } = require('../lib/session_data');
 
 async function addReaction(sock, message, emoji) {
     try {
@@ -59,10 +59,12 @@ async function settingsCommand(sock, chatId, message) {
         const antitagCfg = groupId ? (userGroupData.antitag && userGroupData.antitag[groupId]) : null;
 
         // Build settings message - MENU STYLE
-        const branding = readSessionJson(sock, 'branding.json', {});
+        const sessionSettings = getSessionSettings(sock);
         let settingsMsg = `
 ╭━━━〔 ⚙️ *BOT SETTINGS* 〕━━━┈⊷
-┃ ❍ Bot Name  : ${branding.name || sock.botname || 'KNIGHT BOT'}
+┃ ❍ Bot Name  : ${sessionSettings.botName}
+┃ ❍ Owner     : ${sessionSettings.ownerName}
+┃ ❍ Number    : ${sessionSettings.ownerNumber}
 ┃ ❍ Mode     : ${mode.isPublic ? 'Public' : 'Private'}
 ┃ ❍ Auto Status : ${autoStatus.enabled ? 'ON' : 'OFF'}
 ┃ ❍ Autoread    : ${autoread.enabled ? 'ON' : 'OFF'}

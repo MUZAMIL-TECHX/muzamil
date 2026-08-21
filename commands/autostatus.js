@@ -1,6 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const isOwnerOrSudo = require('../lib/isOwner');
+const { readSessionJson, writeSessionJson } = require('../lib/session_data');
 
 const channelInfo = {
     contextInfo: {
@@ -15,15 +14,7 @@ const channelInfo = {
 };
 
 // Path to store auto status configuration
-const configPath = path.join(__dirname, '../data/autoStatus.json');
-
-// Initialize config file if it doesn't exist
-if (!fs.existsSync(configPath)) {
-    fs.writeFileSync(configPath, JSON.stringify({ 
-        enabled: false, 
-        reactOn: false 
-    }));
-}
+const defaultConfig = { enabled: false, reactOn: false };
 
 async function autoStatusCommand(sock, chatId, msg, args) {
     try {
@@ -39,7 +30,7 @@ async function autoStatusCommand(sock, chatId, msg, args) {
         }
 
         // Read current config
-        let config = JSON.parse(fs.readFileSync(configPath));
+        let config = readSessionJson(sock, 'autoStatus.json', defaultConfig);
 
         // If no arguments, show current status
         if (!args || args.length === 0) {
@@ -57,14 +48,14 @@ async function autoStatusCommand(sock, chatId, msg, args) {
         
         if (command === 'on') {
             config.enabled = true;
-            fs.writeFileSync(configPath, JSON.stringify(config));
+            writeSessionJson(sock, 'autoStatus.json', config);
             await sock.sendMessage(chatId, { 
                 text: '✅ Auto status view has been enabled!\nBot will now automatically view all contact statuses.',
                 ...channelInfo
             });
         } else if (command === 'off') {
             config.enabled = false;
-            fs.writeFileSync(configPath, JSON.stringify(config));
+            writeSessionJson(sock, 'autoStatus.json', config);
             await sock.sendMessage(chatId, { 
                 text: '❌ Auto status view has been disabled!\nBot will no longer automatically view statuses.',
                 ...channelInfo
@@ -82,14 +73,14 @@ async function autoStatusCommand(sock, chatId, msg, args) {
             const reactCommand = args[1].toLowerCase();
             if (reactCommand === 'on') {
                 config.reactOn = true;
-                fs.writeFileSync(configPath, JSON.stringify(config));
+                writeSessionJson(sock, 'autoStatus.json', config);
                 await sock.sendMessage(chatId, { 
                     text: '💫 Status reactions have been enabled!\nBot will now react to status updates.',
                     ...channelInfo
                 });
             } else if (reactCommand === 'off') {
                 config.reactOn = false;
-                fs.writeFileSync(configPath, JSON.stringify(config));
+                writeSessionJson(sock, 'autoStatus.json', config);
                 await sock.sendMessage(chatId, { 
                     text: '❌ Status reactions have been disabled!\nBot will no longer react to status updates.',
                     ...channelInfo
@@ -117,9 +108,9 @@ async function autoStatusCommand(sock, chatId, msg, args) {
 }
 
 // Function to check if auto status is enabled
-function isAutoStatusEnabled() {
+function isAutoStatusEnabled(sock) {
     try {
-        const config = JSON.parse(fs.readFileSync(configPath));
+        const config = readSessionJson(sock, 'autoStatus.json', defaultConfig);
         return config.enabled;
     } catch (error) {
         console.error('Error checking auto status config:', error);
@@ -128,9 +119,9 @@ function isAutoStatusEnabled() {
 }
 
 // Function to check if status reactions are enabled
-function isStatusReactionEnabled() {
+function isStatusReactionEnabled(sock) {
     try {
-        const config = JSON.parse(fs.readFileSync(configPath));
+        const config = readSessionJson(sock, 'autoStatus.json', defaultConfig);
         return config.reactOn;
     } catch (error) {
         console.error('Error checking status reaction config:', error);
@@ -141,7 +132,7 @@ function isStatusReactionEnabled() {
 // Function to react to status using proper method
 async function reactToStatus(sock, statusKey) {
     try {
-        if (!isStatusReactionEnabled()) {
+        if (!isStatusReactionEnabled(sock)) {
             return;
         }
 
@@ -174,7 +165,7 @@ async function reactToStatus(sock, statusKey) {
 // Function to handle status updates
 async function handleStatusUpdate(sock, status) {
     try {
-        if (!isAutoStatusEnabled()) {
+        if (!isAutoStatusEnabled(sock)) {
             return;
         }
 
