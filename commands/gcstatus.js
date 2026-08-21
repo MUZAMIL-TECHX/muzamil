@@ -1,4 +1,9 @@
-const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+const {
+    downloadContentFromMessage,
+    generateWAMessageContent,
+    generateWAMessageFromContent
+} = require('@whiskeysockets/baileys');
+const crypto = require('crypto');
 
 function unwrapMessage(message) {
     let current = message;
@@ -28,6 +33,13 @@ function ownerJid(sock) {
 }
 
 async function gcstatusCommand(sock, chatId, message) {
+    if (!chatId?.endsWith('@g.us')) {
+        await sock.sendMessage(chatId, {
+            text: '❌ This command can only be used in a group.'
+        }, { quoted: message });
+        return;
+    }
+
     const quoted = quotedMessageOf(message);
     const media = quoted.imageMessage || quoted.videoMessage || quoted.audioMessage || quoted.documentMessage;
     const quotedText = quoted.conversation ||
@@ -38,7 +50,7 @@ async function gcstatusCommand(sock, chatId, message) {
 
     if (!media && !quotedText) {
         await sock.sendMessage(chatId, {
-            text: '❌ .gcstatus ko kisi image, video, audio ya text ke reply mein use karein.'
+            text: '❌ Reply to an image, video, audio, document, or text with .gcstatus.'
         }, { quoted: message });
         return;
     }
@@ -71,8 +83,41 @@ async function gcstatusCommand(sock, chatId, message) {
         statusContent = { text: quotedText };
     }
 
-    await sock.sendMessage('status@broadcast', statusContent);
-    await sock.sendMessage(chatId, { text: '✅ Status par laga diya gaya.' }, { quoted: message });
+    await sendGroupStatus(sock, chatId, statusContent);
+    await sock.sendMessage(chatId, { text: '✅ Posted to this group status.' }, { quoted: message });
+}
+
+/**
+ * WhatsApp group status is a different message type from a regular
+ * status@broadcast. The payload must be wrapped as groupStatusMessageV2
+ * and relayed to the actual group JID.
+ */
+async function sendGroupStatus(sock, groupJid, content) {
+    if (!groupJid?.endsWith('@g.us')) {
+        throw new Error('This command can only be used in a group.');
+    }
+    if (typeof sock.waUploadToServer !== 'function') {
+        throw new Error('WhatsApp media upload is unavailable on this session.');
+    }
+
+    const messageSecret = crypto.randomBytes(32);
+    const innerMessage = await generateWAMessageContent(content, {
+        upload: sock.waUploadToServer
+    });
+
+    const wrapped = generateWAMessageFromContent(groupJid, {
+        messageContextInfo: { messageSecret },
+        groupStatusMessageV2: {
+            message: {
+                ...innerMessage,
+                messageContextInfo: { messageSecret }
+            }
+        }
+    }, {});
+
+    await sock.relayMessage(groupJid, wrapped.message, {
+        messageId: wrapped.key.id
+    });
 }
 
 async function goodCommand(sock, message) {
