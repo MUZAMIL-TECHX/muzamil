@@ -48,6 +48,7 @@ function commandArgument(rawText, command) {
 }
 
 // Command imports
+const mediafireCommand = require('./commands/mediafire');
 const { ytsCommand, processYtsReply } = require('./commands/yts');
 const simdataCommand = require('./commands/simdata');
 const truecallerCommand = require('./commands/truecaller');
@@ -684,6 +685,10 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 break;
             case userMessage === '.quote':
                 await quoteCommand(sock, chatId, message);
+                break;
+            case userMessage.startsWith('.mediafire'):
+                await mediafireCommand(sock, chatId, message);
+                commandExecuted = true;
                 break;
             case userMessage === '.fact':
                 await factCommand(sock, chatId, message, message);
