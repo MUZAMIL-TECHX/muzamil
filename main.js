@@ -1078,7 +1078,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await autotypingCommand(sock, chatId, message);
                 commandExecuted = true;
                 break;
-            case userMessage.startsWith('.autoread'):
+            case userMessage === '.autoread' || userMessage.startsWith('.autoread '):
                 await autoreadCommand(sock, chatId, message);
                 commandExecuted = true;
                 break;
