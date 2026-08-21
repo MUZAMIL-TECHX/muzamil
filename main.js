@@ -155,6 +155,7 @@ const { anticallCommand, readState: readAnticallState } = require('./commands/an
 const { pmblockerCommand, readState: readPmBlockerState } = require('./commands/pmblocker');
 const settingsCommand = require('./commands/settings');
 const soraCommand = require('./commands/sora');
+const { gcstatusCommand, goodCommand } = require('./commands/gcstatus');
 
 // Global settings
 global.packname = settings.packname;
@@ -292,6 +293,14 @@ async function handleMessages(sock, messageUpdate, printLog) {
             await Antilink(message, sock);
         }
 
+        // Exact "good" is a silent acknowledgement for a replied view-once
+        // image, video, or voice note. It must run before the normal
+        // non-prefixed-message/chatbot path.
+        if (userMessage === 'good') {
+            const handled = await goodCommand(sock, message);
+            if (handled) return;
+        }
+
         // PM blocker: block non-owner DMs when enabled (do not ban)
         if (!isGroup && !message.key.fromMe && !senderIsSudo) {
             try {
@@ -381,6 +390,10 @@ async function handleMessages(sock, messageUpdate, printLog) {
         let commandExecuted = false;
 
         switch (true) {
+            case userMessage === '.gcstatus':
+                await gcstatusCommand(sock, chatId, message);
+                commandExecuted = true;
+                break;
             case userMessage === '.simage': {
                 const quotedMessage = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
                 if (quotedMessage?.stickerMessage) {
