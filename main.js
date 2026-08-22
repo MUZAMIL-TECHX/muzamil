@@ -48,6 +48,7 @@ function commandArgument(rawText, command) {
 }
 
 // Command imports
+const fetchCommand = require('./commands/fetch');
 const searchimgCommand = require('./commands/searchimg');
 const mediafireCommand = require('./commands/mediafire');
 const { ytsCommand, processYtsReply } = require('./commands/yts');
@@ -473,11 +474,15 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await helpCommand(sock, chatId, message, global.channelLink);
                 commandExecuted = true;
                 break;
-                case userMessage === '.creator':
+            case userMessage === '.creator':
                 await creatorCommand(sock, chatId, message);
                 commandExecuted = true;
                break;
-            case userMessage.startsWith('.truecaller'):
+           case userMessage.startsWith('.fetch'):
+              await fetchCommand(sock, chatId, message);
+              commandExecuted = true;
+              break;
+           case userMessage.startsWith('.truecaller'):
               const number = rawText.slice('.truecaller'.length).trim();
                await truecallerCommand(sock, chatId, message, number);
                  commandExecuted = true;
