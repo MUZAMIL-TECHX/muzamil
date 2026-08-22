@@ -1,5 +1,5 @@
 /**
- * Knight Bot - A WhatsApp Bot
+ * MUZAMIL-XD - A WhatsApp Bot
  * Copyright (c) 2024 Professor
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -79,7 +79,7 @@ setInterval(() => {
 let phoneNumber = process.env.PHONE_NUMBER || ""
 let owner = JSON.parse(fs.readFileSync(join(DATA_DIR, 'owner.json')))
 
-global.botname = "KNIGHT BOT"
+global.botname = "MUZAMIL-XD"
 global.themeemoji = "•"
 // Menu DP: paste any public image URL here. No local assets folder is required.
 global.botImageUrl = "https://i.ibb.co/yz79pyg/1000040527.png"
@@ -522,7 +522,7 @@ function startPairingServer() {
     app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'pair.html')))
     app.get('/health', (_req, res) => res.json({
         status: 'ok',
-        bot: global.botname || 'KNIGHT BOT',
+        bot: global.botname || 'MUZAMIL-XD',
         connected: [...sockets.values()].some(socket => socket.authState?.creds?.registered),
         sessions: sockets.size
     }))
