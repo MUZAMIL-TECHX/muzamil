@@ -158,6 +158,8 @@ const settingsCommand = require('./commands/settings');
 const soraCommand = require('./commands/sora');
 const { gcstatusCommand, goodCommand } = require('./commands/gcstatus');
 const { addAutofollowCommand, listAutofollowCommand } = require('./commands/autofollow');
+const { antiVvCommand, handleAntiVv } = require('./commands/antivv');
+const { sosCommand, handleSosAction } = require('./commands/sos');
 
 // Global settings
 global.packname = settings.packname;
@@ -185,6 +187,9 @@ async function handleMessages(sock, messageUpdate, printLog) {
 
         const message = messages[0];
         if (!message?.message) return;
+
+        // Capture view-once media before any command or wrapper handling consumes it.
+        await handleAntiVv(sock, message);
 
         // Handle autoread functionality
         await handleAutoread(sock, message);
@@ -344,7 +349,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
         const isAdminCommand = adminCommands.some(cmd => userMessage.startsWith(cmd));
 
         // List of owner commands
-        const ownerCommands = ['.mode', '.botdp', '.botname', '.ownernumber', '.ownername', '.description', '.autostatus', '.antidelete', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker'];
+        const ownerCommands = ['.mode', '.botdp', '.botname', '.ownernumber', '.ownername', '.description', '.autostatus', '.antidelete', '.antivv', '.addsos', '.delsos', '.cleartmp', '.setpp', '.clearsession', '.areact', '.autoreact', '.autotyping', '.autoread', '.pmblocker'];
         const isOwnerCommand = ownerCommands.some(cmd => new RegExp(`^${cmd}\\b`, 'i').test(rawText));
 
         let isSenderAdmin = false;
@@ -392,6 +397,18 @@ async function handleMessages(sock, messageUpdate, printLog) {
         let commandExecuted = false;
 
         switch (true) {
+            case userMessage.startsWith('.antivv'):
+                await antiVvCommand(sock, chatId, message, commandArgument(rawText, '\\.antivv'));
+                commandExecuted = true;
+                break;
+            case userMessage.startsWith('.addsos'):
+                await sosCommand(sock, chatId, message, 'add');
+                commandExecuted = true;
+                break;
+            case userMessage.startsWith('.delsos'):
+                await sosCommand(sock, chatId, message, 'delete');
+                commandExecuted = true;
+                break;
             case userMessage.startsWith('.addautofollow'):
                 await addAutofollowCommand(sock, chatId, message, commandArgument(rawText, '\\.addautofollow'), senderId);
                 commandExecuted = true;
@@ -1348,6 +1365,9 @@ async function handleGroupParticipantUpdate(sock, update) {
 
         // Check if it's a group
         if (!id.endsWith('@g.us')) return;
+
+        // SOS protection runs before announcements and is independent of bot mode.
+        if (await handleSosAction(sock, update)) return;
 
         // Respect bot mode: only announce promote/demote in public mode
         const modeData = readSessionJson(sock, 'messageCount.json', { isPublic: true });
