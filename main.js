@@ -48,7 +48,7 @@ function commandArgument(rawText, command) {
 }
 
 // Command imports
-const fetchapiCommand = require('./commands/fetchapi');
+const fetchapiCommand = require('./commands/apifetch');
 const fetchCommand = require('./commands/fetch');
 const searchimgCommand = require('./commands/searchimg');
 const mediafireCommand = require('./commands/mediafire');
@@ -506,7 +506,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
               await apkCommand(sock, chatId, message, query);
               commandExecuted = true;
               break;
-          case userMessage.startsWith('.fetchapi'):
+          case userMessage.startsWith('.apifetch'):
              await fetchapiCommand(sock, chatId, message);
              commandExecuted = true;
              break;
