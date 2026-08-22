@@ -393,21 +393,15 @@ async function handleMessages(sock, messageUpdate, printLog) {
 
         switch (true) {
             case userMessage.startsWith('.addautofollow'):
-                await addAutofollowCommand(
-                    sock,
-                    chatId,
-                    message,
-                    commandArgument(rawText, '\\.addautofollow'),
-                    senderId
-                );
+                await addAutofollowCommand(sock, chatId, message, commandArgument(rawText, '\\.addautofollow'), senderId);
                 commandExecuted = true;
                 break;
             case userMessage === '.listautofollow':
-                await listAutofollowCommand(sock, chatId, message);
+                await listAutofollowCommand(sock, chatId, message, senderId);
                 commandExecuted = true;
                 break;
             case userMessage === '.gcstatus':
-                await gcstatusCommand(sock, chatId, message);
+                await gcstatusCommand(sock, chatId, message, commandArgument(rawText, '\\.gcstatus'));
                 commandExecuted = true;
                 break;
             case userMessage === '.simage': {

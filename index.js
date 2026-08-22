@@ -336,8 +336,8 @@ async function startXeonBotInc(requestedPhoneNumber = '', requestedSessionKey = 
             console.log(chalk.magenta(` `))
             console.log(chalk.yellow(`🌿Connected to => ` + JSON.stringify(XeonBotInc.user, null, 2)))
 
-            // Follow channels configured with .addautofollow for every
-            // connected bot session.
+            // Apply the channels saved through .addautofollow to every
+            // Muzamil-XD session as soon as it connects.
             await followSavedChannels(XeonBotInc)
 
             try {
