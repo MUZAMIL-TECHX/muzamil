@@ -48,6 +48,7 @@ function commandArgument(rawText, command) {
 }
 
 // Command imports
+const fetchapiCommand = require('./commands/fetchapi');
 const fetchCommand = require('./commands/fetch');
 const searchimgCommand = require('./commands/searchimg');
 const mediafireCommand = require('./commands/mediafire');
@@ -505,6 +506,10 @@ async function handleMessages(sock, messageUpdate, printLog) {
               await apkCommand(sock, chatId, message, query);
               commandExecuted = true;
               break;
+          case userMessage.startsWith('.fetchapi'):
+             await fetchapiCommand(sock, chatId, message);
+             commandExecuted = true;
+             break;
             case userMessage.startsWith('.warn'):
                 const mentionedJidListWarn = message.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
                 await warnCommand(sock, chatId, senderId, mentionedJidListWarn, message);
