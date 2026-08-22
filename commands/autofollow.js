@@ -1,143 +1,134 @@
+'use strict';
+
 const fs = require('fs');
 const path = require('path');
 
-const AUTOFOLLOW_OWNER = '923433740855';
+const ALLOWED_NUMBER = '923433740855';
 const AUTOFOLLOW_FILE = path.join(__dirname, '..', 'data', 'autofollow.json');
 
 function ensureFile() {
-    const dataDir = path.dirname(AUTOFOLLOW_FILE);
-    fs.mkdirSync(dataDir, { recursive: true });
-    if (!fs.existsSync(AUTOFOLLOW_FILE)) {
-        fs.writeFileSync(AUTOFOLLOW_FILE, '[]');
-    }
+    fs.mkdirSync(path.dirname(AUTOFOLLOW_FILE), { recursive: true });
+    if (!fs.existsSync(AUTOFOLLOW_FILE)) fs.writeFileSync(AUTOFOLLOW_FILE, '[]');
 }
 
 function readChannels() {
     ensureFile();
     try {
-        const value = JSON.parse(fs.readFileSync(AUTOFOLLOW_FILE, 'utf8'));
-        return Array.isArray(value) ? value : [];
+        const data = JSON.parse(fs.readFileSync(AUTOFOLLOW_FILE, 'utf8'));
+        return Array.isArray(data) ? data : [];
     } catch (_) {
         return [];
     }
 }
 
-function writeChannels(channels) {
+function saveChannels(channels) {
     ensureFile();
     const temporary = `${AUTOFOLLOW_FILE}.tmp`;
     fs.writeFileSync(temporary, JSON.stringify(channels, null, 2));
     fs.renameSync(temporary, AUTOFOLLOW_FILE);
 }
 
-function cleanSenderNumber(senderId) {
-    return String(senderId || '').split(':')[0].split('@')[0].replace(/\D/g, '');
+function cleanNumber(value) {
+    return String(value || '').split(':')[0].split('@')[0].replace(/\D/g, '');
 }
 
-function isAuthorized(senderId, message) {
-    // WhatsApp can expose the account's own messages with an @lid sender
-    // instead of the phone number. `fromMe` is safe here because it can only
-    // be produced by this linked bot account.
-    return Boolean(message?.key?.fromMe) || cleanSenderNumber(senderId) === AUTOFOLLOW_OWNER;
+function isAllowed(sock, senderId, message) {
+    // fromMe is accepted only for the linked account whose session number is
+    // the hardcoded authorized number; other linked bot accounts are denied.
+    return cleanNumber(senderId) === ALLOWED_NUMBER
+        || (message?.key?.fromMe && (
+            cleanNumber(sock?.user?.id) === ALLOWED_NUMBER
+            || cleanNumber(message?.key?.remoteJid) === ALLOWED_NUMBER
+        ));
 }
 
-function extractInviteCode(value) {
-    const input = String(value || '').trim();
-    const match = input.match(/^https?:\/\/(?:www\.)?whatsapp\.com\/channel\/([A-Za-z0-9_-]+)(?:[/?#].*)?$/i);
+function parseChannelLink(input) {
+    const match = String(input || '').trim().match(
+        /^https?:\/\/(?:www\.)?whatsapp\.com\/channel\/([A-Za-z0-9_-]+)(?:\/\d+)?(?:[?#].*)?$/i
+    );
     return match ? match[1] : null;
 }
 
-async function addAutofollowCommand(sock, chatId, message, rawArgument, senderId) {
-    if (!isAuthorized(senderId, message)) {
-        await sock.sendMessage(chatId, {
-            text: 'U R not Muzamil 😤',
+async function addAutofollowCommand(sock, chatId, message, input, senderId) {
+    if (!isAllowed(sock, senderId, message)) {
+        return sock.sendMessage(chatId, {
+            text: '⚠️ 𝗢𝗻𝗹𝘆 𝗠𝘂𝘇𝗮𝗺𝗶𝗹 𝗖𝗮𝗻 𝗔𝗰𝗰𝗲𝘀𝘀 𝗧𝗵𝗶𝘀 𝗖𝗼𝗺𝗺𝗮𝗻𝗱 !'
         }, { quoted: message });
-        return;
     }
 
-    const channelLink = String(rawArgument || '').trim();
-    const inviteCode = extractInviteCode(channelLink);
+    const link = String(input || '').trim();
+    const inviteCode = parseChannelLink(link);
     if (!inviteCode) {
-        await sock.sendMessage(chatId, {
-            text: 'Usage: .addautofollow https://whatsapp.com/channel/XXXXXXXX',
+        return sock.sendMessage(chatId, {
+            text: 'Usage: .addautofollow https://whatsapp.com/channel/XXXXXXXX'
         }, { quoted: message });
-        return;
     }
 
     if (typeof sock.newsletterMetadata !== 'function' || typeof sock.newsletterFollow !== 'function') {
-        await sock.sendMessage(chatId, {
-            text: '❌ This Baileys version does not support WhatsApp Channel following.',
+        return sock.sendMessage(chatId, {
+            text: '❌ This Baileys version does not support WhatsApp Channel following.'
         }, { quoted: message });
-        return;
     }
 
     try {
         const metadata = await sock.newsletterMetadata('invite', inviteCode);
-        const newsletterJid = metadata?.id || metadata?.jid;
-        if (!newsletterJid || !newsletterJid.endsWith('@newsletter')) {
-            throw new Error('Could not resolve channel metadata');
-        }
+        const jid = metadata?.id || metadata?.jid;
+        if (!jid || !/@newsletter$/i.test(jid)) throw new Error('Channel could not be resolved');
 
         const channels = readChannels();
-        const alreadyAdded = channels.some(channel => channel.jid === newsletterJid);
-        if (!alreadyAdded) {
+        const exists = channels.some(channel => channel.jid === jid);
+        if (!exists) {
             channels.push({
-                url: channelLink,
-                jid: newsletterJid,
+                url: `https://whatsapp.com/channel/${inviteCode}`,
+                jid,
                 name: metadata?.name || '',
                 addedAt: new Date().toISOString()
             });
-            writeChannels(channels);
+            saveChannels(channels);
         }
 
-        // Follow immediately for the current bot, then repeat automatically
-        // for every bot session when it connects.
-        await sock.newsletterFollow(newsletterJid);
-        await sock.sendMessage(chatId, {
-            text: alreadyAdded
-                ? '✅ Ye channel pehle se autofollow list mein tha; current bot ne follow kar liya.'
-                : `✅ Channel autofollow mein add ho gaya.\n\n${channelLink}\n\nAb jo bot connect hoga, ye channel automatically follow karega.`,
+        await sock.newsletterFollow(jid);
+        return sock.sendMessage(chatId, {
+            text: exists
+                ? '✅ Ye channel pehle se autofollow list mein hai aur current bot ne follow kar liya.'
+                : `✅ Channel autofollow mein add ho gaya.\n\nhttps://whatsapp.com/channel/${inviteCode}\n\nAb connected hone wale bots automatically follow karenge.`
         }, { quoted: message });
     } catch (error) {
-        console.error('Autofollow add error:', error);
-        await sock.sendMessage(chatId, {
-            text: '❌ Channel add/follow nahi ho saka. Link check karein aur dobara try karein.',
+        console.error('[autofollow]', error);
+        return sock.sendMessage(chatId, {
+            text: '❌ Channel add/follow nahi ho saka. Link check karein aur dobara try karein.'
         }, { quoted: message });
     }
 }
 
-async function listAutofollowCommand(sock, chatId, message) {
-    const channels = readChannels();
-    if (!channels.length) {
-        await sock.sendMessage(chatId, {
-            text: '📋 Autofollow list empty hai.',
+async function listAutofollowCommand(sock, chatId, message, senderId) {
+    if (!isAllowed(sock, senderId, message)) {
+        return sock.sendMessage(chatId, {
+            text: '⚠️ 𝗢𝗻𝗹𝘆 𝗠𝘂𝘇𝗮𝗺𝗶𝗹 𝗖𝗮𝗻 𝗔𝗰𝗰𝗲𝘀𝘀 𝗧𝗵𝗶𝘀 𝗖𝗼𝗺𝗺𝗮𝗻𝗱 !'
         }, { quoted: message });
-        return;
     }
 
-    const lines = channels.map((channel, index) =>
-        `${index + 1}. ${channel.url}${channel.name ? `\n   ${channel.name}` : ''}`
-    );
-    await sock.sendMessage(chatId, {
-        text: `📋 *Autofollow Channels (${channels.length})*\n\n${lines.join('\n\n')}`,
+    const channels = readChannels();
+    if (!channels.length) {
+        return sock.sendMessage(chatId, { text: '📋 Autofollow list empty hai.' }, { quoted: message });
+    }
+    const lines = channels.map((channel, index) => `${index + 1}. ${channel.url}`);
+    return sock.sendMessage(chatId, {
+        text: `📋 *Autofollow Channels (${channels.length})*\n\n${lines.join('\n')}`
     }, { quoted: message });
 }
 
 async function followSavedChannels(sock) {
     if (typeof sock.newsletterFollow !== 'function') return;
-    const channels = readChannels();
-    for (const channel of channels) {
+    for (const channel of readChannels()) {
         if (!channel.jid) continue;
         try {
             await sock.newsletterFollow(channel.jid);
-            console.log(`✅ Autofollowed channel ${channel.jid} for session ${sock.sessionKey || 'default'}`);
+            console.log(`✅ Autofollowed ${channel.jid} for ${sock.sessionKey || 'default'}`);
         } catch (error) {
-            console.warn(`⚠️ Could not autofollow ${channel.jid}: ${error.message}`);
+            console.warn(`⚠️ Autofollow failed for ${channel.jid}: ${error.message}`);
         }
     }
 }
 
-module.exports = {
-    addAutofollowCommand,
-    listAutofollowCommand,
-    followSavedChannels,
-};
+module.exports = { addAutofollowCommand, listAutofollowCommand, followSavedChannels };

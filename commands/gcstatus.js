@@ -99,7 +99,7 @@ async function sendGroupStatus(sock, groupJid, content) {
     }
 }
 
-async function gcstatusCommand(sock, chatId, message) {
+async function gcstatusCommand(sock, chatId, message, commandText = '') {
     try {
         await addReaction(sock, message, '📡');
 
@@ -123,8 +123,9 @@ async function gcstatusCommand(sock, chatId, message) {
             quoted.imageMessage?.caption ||
             quoted.videoMessage?.caption ||
             '';
+        const directText = String(commandText || '').trim();
 
-        if (!media && !quotedText) {
+        if (!media && !quotedText && !directText) {
             await addReaction(sock, message, '❌');
             await sock.sendMessage(chatId, {
                 text: `
@@ -173,7 +174,7 @@ async function gcstatusCommand(sock, chatId, message) {
                     fileName: quoted.documentMessage.fileName || 'status-file'
                 };
             } else {
-                statusContent = { text: quotedText };
+                statusContent = { text: quotedText || directText };
             }
         } catch (downloadError) {
             await addReaction(sock, message, '❌');
