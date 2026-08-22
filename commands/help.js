@@ -47,6 +47,8 @@ async function helpCommand(sock, chatId, message) {
 ┃ ❍ .simdata [number/cnic]
 ┃ ❍ .apk [app name]
 ┃ ❍ .github / .git / .repo
+┃ ❍ .fetch <website>
+┃ ❍ .fetchapi <website>
 ╰━━━━━━━━━━━━━━━━┈⊷
 
 ╭━━━〔 👮 *ADMIN MENU* 〕━━━┈⊷
