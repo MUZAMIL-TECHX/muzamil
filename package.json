@@ -25,6 +25,7 @@
     "@whiskeysockets/baileys": "7.0.0-rc14",
     "awesome-phonenumber": "^5.9.0",
     "axios": "^1.8.4",
+    "archiver": "^7.0.1",
     "chalk": "^4.1.2",
     "cheerio": "^1.0.0-rc.12",
     "express": "^4.21.2",
