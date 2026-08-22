@@ -1,7 +1,6 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const archiver = require('archiver');
 const dns = require('dns').promises;
 
 // ===============================
@@ -358,6 +357,10 @@ async function fetchapiCommand(sock, chatId, message) {
         zipPath = path.join(process.cwd(), 'temp', zipFileName);
 
         const output = fs.createWriteStream(zipPath);
+        // Load only when the archive command is used so the bot can still boot
+        // if a deployment has stale dependencies; archiver is declared in
+        // package.json and will be installed on a clean Railway build.
+        const archiver = require('archiver');
         const archive = archiver('zip', { zlib: { level: 9 } });
 
         await new Promise((resolve, reject) => {

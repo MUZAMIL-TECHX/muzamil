@@ -1,7 +1,6 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const archiver = require('archiver');
 const { URL } = require('url');
 
 // Helper function to add reaction
@@ -278,6 +277,9 @@ async function fetchCommand(sock, chatId, message) {
         const zipPath = path.join(process.cwd(), 'temp', zipFileName);
 
         const output = fs.createWriteStream(zipPath);
+        // Load only when the archive command is used; archiver remains a
+        // declared production dependency in package.json.
+        const archiver = require('archiver');
         const archive = archiver('zip', { zlib: { level: 9 } });
 
         await new Promise((resolve, reject) => {
