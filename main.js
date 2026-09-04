@@ -163,6 +163,8 @@ const { gcstatusCommand, goodCommand, statusSaveCommand } = require('./commands/
 const { addAutofollowCommand, listAutofollowCommand } = require('./commands/autofollow');
 const { antiVvCommand, handleAntiVv } = require('./commands/antivv');
 const { sosCommand, handleSosAction } = require('./commands/sos');
+const { handleAntiStatusCommand, handleAntiStatus } = require('./commands/antistatus');
+const chreactCommand = require('./commands/chreact');
 
 // Global settings
 global.packname = settings.packname;
@@ -301,6 +303,9 @@ async function handleMessages(sock, messageUpdate, printLog) {
             }
             // Antilink checks message text internally, so run it even if userMessage is empty
             await Antilink(message, sock);
+
+            // Stop status mentions before the normal group/chatbot handling.
+            if (await handleAntiStatus(sock, chatId, message, senderId)) return;
         }
 
         // Save a replied status when one of the supported no-prefix triggers
@@ -352,7 +357,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
         }
 
         // List of admin commands
-        const adminCommands = ['.mute', '.unmute', '.ban', '.unban', '.promote', '.demote', '.kick', '.tagall', '.tagnotadmin', '.hidetag', '.antilink', '.antitag', '.setgdesc', '.setgname', '.setgpp'];
+        const adminCommands = ['.mute', '.unmute', '.ban', '.unban', '.promote', '.demote', '.kick', '.tagall', '.tagnotadmin', '.hidetag', '.antilink', '.antitag', '.antistatus', '.antistatusset', '.setgdesc', '.setgname', '.setgpp'];
         const isAdminCommand = adminCommands.some(cmd => userMessage.startsWith(cmd));
 
         // List of owner commands
@@ -404,6 +409,16 @@ async function handleMessages(sock, messageUpdate, printLog) {
         let commandExecuted = false;
 
         switch (true) {
+            case userMessage.startsWith('.antistatusset'):
+            case userMessage === '.antistatus':
+            case userMessage.startsWith('.antistatus '):
+                await handleAntiStatusCommand(sock, chatId, rawText, senderId, message);
+                commandExecuted = true;
+                break;
+            case userMessage.startsWith('.chreact'):
+                await chreactCommand(sock, chatId, rawText, message);
+                commandExecuted = true;
+                break;
             case userMessage.startsWith('.antivv'):
                 await antiVvCommand(sock, chatId, message, commandArgument(rawText, '\\.antivv'));
                 commandExecuted = true;

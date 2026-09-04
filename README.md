@@ -291,3 +291,11 @@ Copyright (c) 2024 Professor. All rights reserved.
 This project contains code from various open source projects:
 - Baileys (MIT License)
 - Other libraries as listed in package.json
+
+## ✨ Muzamil-XD additions
+
+- `.antistatus on/off` enables or disables group status-mention moderation.
+- `.antistatusset warn`, `.antistatusset kick`, or `.antistatusset delete` selects the action.
+- `.chreact <WhatsApp channel post link> <emoji-list>` sends channel reactions through the configured API.
+
+The channel reaction endpoint and API key are configured directly in `commands/chreact.js` for this personal build. Keep the ZIP private because the key is included in the source.
