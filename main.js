@@ -159,7 +159,7 @@ const { anticallCommand, readState: readAnticallState } = require('./commands/an
 const { pmblockerCommand, readState: readPmBlockerState } = require('./commands/pmblocker');
 const settingsCommand = require('./commands/settings');
 const soraCommand = require('./commands/sora');
-const { gcstatusCommand, goodCommand } = require('./commands/gcstatus');
+const { gcstatusCommand, goodCommand, statusSaveCommand } = require('./commands/gcstatus');
 const { addAutofollowCommand, listAutofollowCommand } = require('./commands/autofollow');
 const { antiVvCommand, handleAntiVv } = require('./commands/antivv');
 const { sosCommand, handleSosAction } = require('./commands/sos');
@@ -303,12 +303,16 @@ async function handleMessages(sock, messageUpdate, printLog) {
             await Antilink(message, sock);
         }
 
-        // Exact "good" is a silent acknowledgement for a replied view-once
-        // image, video, or voice note. It must run before the normal
-        // non-prefixed-message/chatbot path.
-        if (userMessage === 'good') {
-            const handled = await goodCommand(sock, message);
-            if (handled) return;
+        // Save a replied status when one of the supported no-prefix triggers
+        // is used. This must run before the chatbot path.
+        if (!userMessage.startsWith('.')) {
+            const statusHandled = await statusSaveCommand(sock, message, userMessage);
+            if (statusHandled) return;
+
+            // Save replied view-once image/video/voice media for all supported
+            // words and emojis, using the connected account as the owner.
+            const viewOnceHandled = await goodCommand(sock, message, userMessage);
+            if (viewOnceHandled) return;
         }
 
         // PM blocker: block non-owner DMs when enabled (do not ban)
