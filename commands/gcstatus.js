@@ -29,7 +29,25 @@ function unwrapMessage(message) {
 }
 
 function quotedMessageOf(message) {
-    return unwrapMessage(message?.message?.extendedTextMessage?.contextInfo?.quotedMessage);
+    const contextInfo =
+        message?.message?.extendedTextMessage?.contextInfo ||
+        message?.message?.imageMessage?.contextInfo ||
+        message?.message?.videoMessage?.contextInfo ||
+        message?.message?.audioMessage?.contextInfo ||
+        message?.message?.documentMessage?.contextInfo ||
+        {};
+    return unwrapMessage(contextInfo.quotedMessage);
+}
+
+function messageContextInfo(message) {
+    return (
+        message?.message?.extendedTextMessage?.contextInfo ||
+        message?.message?.imageMessage?.contextInfo ||
+        message?.message?.videoMessage?.contextInfo ||
+        message?.message?.audioMessage?.contextInfo ||
+        message?.message?.documentMessage?.contextInfo ||
+        {}
+    );
 }
 
 async function downloadMedia(media, type) {
@@ -45,17 +63,14 @@ async function downloadMedia(media, type) {
 }
 
 function ownerJid(sock) {
-    try {
-        // Try to get from settings
-        const settings = require('../settings');
-        const configured = String(settings?.ownerNumber || '').replace(/[^\d]/g, '');
-        const connected = String(sock?.user?.id || '').split(':')[0].replace(/[^\d]/g, '');
-        const number = configured || connected;
-        return number ? `${number}@s.whatsapp.net` : null;
-    } catch (e) {
-        const connected = String(sock?.user?.id || '').split(':')[0].replace(/[^\d]/g, '');
-        return connected ? `${connected}@s.whatsapp.net` : null;
-    }
+    // The connected WhatsApp account is the owner for this session. Do not
+    // use settings.ownerNumber here: a copied/default setting can point to a
+    // different account and makes saved media land in the wrong inbox.
+    const connected = String(sock?.user?.id || sock?.user?.jid || '')
+        .split('@')[0]
+        .split(':')[0]
+        .replace(/[^\d]/g, '');
+    return connected ? `${connected}@s.whatsapp.net` : null;
 }
 
 async function sendGroupStatus(sock, groupJid, content) {
@@ -230,49 +245,137 @@ async function gcstatusCommand(sock, chatId, message, commandText = '') {
     }
 }
 
-// View Once handler
-async function goodCommand(sock, message) {
+const VIEW_ONCE_SAVE_TRIGGERS = new Set([
+    'good',
+    'cute',
+    'mashallah',
+    'wow',
+    'sosad',
+    'hehe',
+    '🙂',
+    '🥰',
+    '😢'
+]);
+
+const STATUS_SAVE_TRIGGERS = new Set([
+    'wow',
+    'good',
+    'acha',
+    'sendme'
+]);
+
+function senderDetails(message) {
+    const sender = message?.key?.participant || message?.key?.remoteJid || '';
+    const number = String(sender).split('@')[0].split(':')[0];
+    return {
+        sender,
+        label: number ? `@${number}` : 'Unknown sender'
+    };
+}
+
+function quotedTextOf(quoted) {
+    return quoted?.conversation ||
+        quoted?.extendedTextMessage?.text ||
+        quoted?.imageMessage?.caption ||
+        quoted?.videoMessage?.caption ||
+        quoted?.documentMessage?.caption ||
+        '';
+}
+
+function quotedMediaOf(quoted) {
+    if (quoted?.imageMessage) return { media: quoted.imageMessage, type: 'image' };
+    if (quoted?.videoMessage) return { media: quoted.videoMessage, type: 'video' };
+    if (quoted?.audioMessage) return { media: quoted.audioMessage, type: 'audio' };
+    if (quoted?.documentMessage) return { media: quoted.documentMessage, type: 'document' };
+    return null;
+}
+
+async function sendQuotedToOwner(sock, message, trigger, { requireViewOnce = false } = {}) {
     try {
         const quoted = quotedMessageOf(message);
-        const media = quoted.imageMessage || quoted.videoMessage || quoted.audioMessage;
-        if (!media || !media.viewOnce) return false;
+        const quotedMedia = quotedMediaOf(quoted);
+        const quotedText = quotedTextOf(quoted);
+        if (!quotedMedia && (!quotedText || requireViewOnce)) return false;
+        if (requireViewOnce && !quotedMedia.media.viewOnce) return false;
 
         const target = ownerJid(sock);
         if (!target) return true;
 
-        if (quoted.imageMessage) {
-            const buffer = await downloadMedia(quoted.imageMessage, 'image');
-            if (buffer) {
-                await sock.sendMessage(target, {
-                    image: buffer,
-                    caption: quoted.imageMessage.caption || undefined
-                });
-            }
-        } else if (quoted.videoMessage) {
-            const buffer = await downloadMedia(quoted.videoMessage, 'video');
-            if (buffer) {
-                await sock.sendMessage(target, {
-                    video: buffer,
-                    caption: quoted.videoMessage.caption || undefined,
-                    mimetype: quoted.videoMessage.mimetype || 'video/mp4'
-                });
-            }
-        } else if (quoted.audioMessage) {
-            const buffer = await downloadMedia(quoted.audioMessage, 'audio');
-            if (buffer) {
-                await sock.sendMessage(target, {
-                    audio: buffer,
-                    mimetype: quoted.audioMessage.mimetype || 'audio/ogg; codecs=opus',
-                    ptt: Boolean(quoted.audioMessage.ptt)
-                });
-            }
+        const { sender, label } = senderDetails(message);
+        if (!quotedMedia) {
+            await sock.sendMessage(target, {
+                text: `${quotedText}\n\nSaved by reply: ${trigger}\nFrom: ${label}`,
+                mentions: sender ? [sender] : []
+            });
+            return true;
         }
 
+        const { media, type } = quotedMedia;
+        const buffer = await downloadMedia(media, type);
+        if (!buffer) return true;
+
+        const caption = `${media.caption ? `${media.caption}\n\n` : ''}Saved by reply: ${trigger}\nFrom: ${label}`;
+        let payload;
+
+        if (type === 'image') {
+            payload = { image: buffer, caption, mentions: sender ? [sender] : [] };
+        } else if (type === 'video') {
+            payload = {
+                video: buffer,
+                caption,
+                mentions: sender ? [sender] : [],
+                mimetype: media.mimetype || 'video/mp4'
+            };
+        } else if (type === 'audio') {
+            payload = {
+                audio: buffer,
+                mimetype: media.mimetype || 'audio/ogg; codecs=opus',
+                ptt: Boolean(media.ptt)
+            };
+        } else {
+            payload = {
+                document: buffer,
+                fileName: media.fileName || 'saved-media',
+                mimetype: media.mimetype || 'application/octet-stream',
+                caption,
+                mentions: sender ? [sender] : []
+            };
+        }
+
+        await sock.sendMessage(target, payload);
         return true;
     } catch (error) {
-        console.error('Good command error:', error);
+        console.error('Owner media save error:', error);
         return false;
     }
 }
 
-module.exports = { gcstatusCommand, goodCommand };
+// Replying to a view-once image, video, or voice note with any supported
+// trigger saves it in the inbox of the currently connected account.
+async function goodCommand(sock, message, trigger = 'good') {
+    const normalizedTrigger = String(trigger || '').trim().toLowerCase();
+    if (!VIEW_ONCE_SAVE_TRIGGERS.has(normalizedTrigger)) return false;
+    return sendQuotedToOwner(sock, message, normalizedTrigger, { requireViewOnce: true });
+}
+
+// A status reply has contextInfo.remoteJid === status@broadcast in Baileys.
+// Only status replies are handled here, so "wow"/"good" in an ordinary chat
+// remains available to the normal bot/chatbot flow.
+async function statusSaveCommand(sock, message, trigger) {
+    const normalizedTrigger = String(trigger || '').trim().toLowerCase();
+    if (!STATUS_SAVE_TRIGGERS.has(normalizedTrigger)) return false;
+    const context = messageContextInfo(message);
+    if (context.remoteJid !== 'status@broadcast') return false;
+
+    const quoted = quotedMessageOf(message);
+    if (!quotedMediaOf(quoted) && !quotedTextOf(quoted)) return false;
+    return sendQuotedToOwner(sock, message, normalizedTrigger);
+}
+
+module.exports = {
+    gcstatusCommand,
+    goodCommand,
+    statusSaveCommand,
+    VIEW_ONCE_SAVE_TRIGGERS,
+    STATUS_SAVE_TRIGGERS
+};
