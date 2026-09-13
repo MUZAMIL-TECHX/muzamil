@@ -1,301 +1,255 @@
-# 🤖 Knight Bot
+🤖 MUZAMIL-XD
 
-This is a WhatsApp bot built using the Baileys library for group management, including features like tagging all members, muting/unmuting, and many more. It's designed to help admins efficiently manage WhatsApp groups.
+<div align="center">  <a href="https://github.com/">
+    <img src="https://img.shields.io/badge/MUZAMIL--XD-3.0.7-00c853?style=for-the-badge" alt="MUZAMIL-XD"/>
+  </a><br><br>
 
-<div align="center"> 
-  <a href="https://git.io/typing-svg"> 
-    <img src="https://readme-typing-svg.demolab.com?font=Ribeye&size=50&pause=1000&color=33ff00&center=true&width=910&height=100&lines=Knight-Bot;Multi+Device+Whatsapp+Bot;Coded+By+Professor" alt="Typing SVG" />
-  </a> 
-</div> 
+  <a href="https://git.io/typing-svg">
+    <img src="https://readme-typing-svg.demolab.com?font=Ribeye&size=50&pause=1000&color=33ff00&center=true&width=910&height=100&lines=MUZAMIL-XD;Multi+Device+WhatsApp+Bot;Developed+By+TeamRedXhackers" alt="Typing SVG"/>
+  </a>  <br>  <img src="https://img.shields.io/badge/Version-3.0.7-blue?style=for-the-badge" alt="Version"/>
+  <img src="https://img.shields.io/badge/Platform-WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp"/>
+  <img src="https://img.shields.io/badge/Runtime-Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"/></div>---
 
-<div align="center"> 
-  <a href="https://youtube.com/@mr_unique_hacker"> 
-    <img src="https://raw.githubusercontent.com/mruniquehacker/Knightbot-MD/main/assets/bot_image.jpg" alt="Knight Bot" height="300"> 
-  </a> 
-</div>
+📌 About MUZAMIL-XD
 
-<div align="center">
-  <img src="https://img.shields.io/github/followers/mruniquehacker?style=for-the-badge&label=Followers" alt="Followers"/>
-  <img src="https://img.shields.io/github/stars/mruniquehacker/Knightbot-MD?style=for-the-badge&label=Stars" alt="Stars"/>
-  <img src="https://img.shields.io/github/forks/mruniquehacker/Knightbot-MD?style=for-the-badge&label=Forks" alt="Forks"/>
-  <img src="https://img.shields.io/github/watchers/mruniquehacker/Knightbot-MD?style=for-the-badge&label=Watchers" alt="Watchers"/>
-</div>
+MUZAMIL-XD is a powerful Multi-Device WhatsApp Bot built using the Baileys library, designed to make WhatsApp group management, media downloading, entertainment, utility tasks, and automation easier.
 
----
-<div>
-  <a href="https://www.rapidproxy.io/?ref=Knightbot" target="_blank">
-    <img src="https://raw.githubusercontent.com/mruniquehacker/Knightbot-MD/main/assets/rapid.jpg" alt="RapidProxy" width="100%" />
-  </a>
-</div>
+With 300+ working commands, MUZAMIL-XD provides a wide range of features for group admins, communities, and personal use.
 
-<br>
-
-<div align="left">
-  <a href="https://www.rapidproxy.io/?ref=Knightbot" target="_blank"><b>RapidProxy</b></a> delivers fast, reliable proxy infrastructure for large-scale data operations. With high concurrency, non-expiring traffic, and AI-powered CAPTCHA bypass, it ensures efficient, uninterrupted data collection—trusted by developers worldwide.<br><br>
-  90M+ Residential IPs • Smart Rotation • High Success Rate • Built for Scale<br><br>
-  <b>Special Offer:</b> <a href="https://www.rapidproxy.io/?ref=Knightbot" target="_blank">Try it free</a> — Pricing from $0.65/GB with non-expiring traffic. Use code <b>RAPID10</b> for 10% off.
-</div>
-
-<br>
-
-<div align="left">
-  <a href="https://www.rapidproxy.io/?ref=Knightbot" target="_blank">
-    <img src="https://img.shields.io/badge/Try now-28a745?style=for-the-badge" alt="Try now"/>
-  </a>
-</div>
-
-
-## 🚀 Steps to Deploy Bot
-
-### Step 1: Fork the Repository
-
-Click the button below to fork the Knight Bot repository to your GitHub account:
-
-<div align="center">
-  <a href="https://github.com/mruniquehacker/Knightbot-MD/fork">
-    <img src="https://img.shields.io/badge/Fork-Repository-blue?style=for-the-badge" alt="Fork the repository"/>
-  </a>
-</div>
+«⚡ Fast • Powerful • Customizable • Multi-Device»
 
 ---
 
-### Step 2: Get Pair Code
+✨ Features
 
-Deploy the bot and easily connect it to your WhatsApp account by pair code. Click the button below to deploy the bot on Replit.
+- 👥 Group Management
+- 📢 Tag All Members
+- 🔇 Mute / Unmute Groups
+- 🛡️ Anti-Link Protection
+- ⚠️ Warn & Manage Members
+- 🎮 Games & Entertainment
+- 🎵 YouTube Search & Download
+- 🎬 Facebook Video Downloader
+- 🎶 TikTok Downloader
+- 🖼️ Profile Picture Tools
+- 📝 Text-to-Speech
+- 🖼️ Sticker Creation
+- 🔍 Utility & Search Commands
+- 📡 WhatsApp Channel Reactions
+- 🚫 Anti-Status Moderation
+- ⚙️ Owner & Sudo Controls
+- 🌐 Multi-Device Support
+- 🔧 Customizable Bot Name & Branding
 
-<div align="center">
-  <a href="https://knight-bot-paircode.onrender.com" target="_blank">
-    <img src="https://img.shields.io/badge/GET%20PAIR%20CODE-Easy%20Method-ff4d4d?style=for-the-badge" alt="Generate Pair Code"/>
-  </a>
-</div>
+---
 
+🆕 MUZAMIL-XD Additions
 
-### Pair directly from the built-in pairing site
+🚫 Anti-Status Moderation
 
-This Knight-MD build includes a built-in pair-code website. Start the bot with:
+Control status mentions in groups with configurable actions.
 
-```bash
+Command| Description
+".antistatus on"| Enable anti-status moderation
+".antistatus off"| Disable anti-status moderation
+".antistatusset warn"| Warn users
+".antistatusset kick"| Remove users
+".antistatusset delete"| Delete the message
+
+❤️ Channel Reactions
+
+React to WhatsApp channel posts using:
+
+.chreact <channel-post-link> <emoji-list>
+
+Example:
+
+.chreact https://whatsapp.com/channel/... ❤️🔥
+
+«⚠️ The channel reaction API is configured for this personal build. Keep API keys private and never publish them in a public repository.»
+
+---
+
+🚀 Deployment
+
+Step 1: Fork the Repository
+
+Fork the MUZAMIL-XD repository to your GitHub account.
+
+<div align="center"><a href="YOUR_GITHUB_REPOSITORY_URL/fork">
+  <img src="https://img.shields.io/badge/Fork%20Repository-blue?style=for-the-badge&logo=github" alt="Fork Repository"/>
+</a></div>---
+
+Step 2: Get Pair Code
+
+Use the official pairing website for your deployment:
+
+<div align="center"><a href="YOUR_PAIR_CODE_URL" target="_blank">
+  <img src="https://img.shields.io/badge/GET%20PAIR%20CODE-Easy%20Method-ff4d4d?style=for-the-badge" alt="Get Pair Code"/>
+</a></div>Enter your WhatsApp number with country code, without "+" or spaces, and follow the pairing instructions.
+
+In WhatsApp:
+
+Linked Devices → Link a Device → Enter Pairing Code
+
+---
+
+Step 3: Install & Run
+
+Requirements
+
+- Node.js 20 or newer
+- Git
+- A WhatsApp account
+- Stable internet connection
+
+Clone Repository
+
+git clone YOUR_GITHUB_REPOSITORY_URL
+cd MUZAMIL-XD
+
+Install Dependencies
+
 npm install
+
+Start the Bot
+
 npm start
-```
 
-Railway uses Node.js 20+ for this project. The included `railway.json`, `nixpacks.toml`,
-and `.nvmrc` select a compatible runtime automatically. Open the deployed service URL,
-enter your WhatsApp number with country code (without `+` or spaces), and select
-**GET KNIGHT PAIR CODE**. In WhatsApp, open **Linked Devices → Link a Device**, then
-enter the displayed code.
+Or, if your project uses "index.js" directly:
 
-The bot stores credentials in `session/`. Each paired WhatsApp number gets an independent
-directory under `session/<phone-number>/`, including its own auth, message store,
-settings, mode, and branding. Multiple people can pair and run the bot at the same
-time. The original root `session/` format remains supported for upgrades.
-For persistence across Railway redeploys or
-restarts, attach a Railway Volume mounted at `/app/session` and set `SESSION_DIR=/app/session`.
-Without a persistent volume, pairing must be repeated after the service filesystem is reset.
-
-The JSON endpoints are also available at `/health`, `/status?number=...`,
-`/sessions`, and `/code?number=...`. `/status` and `/sessions` report each account
-independently.
-The service listens on Railway's `PORT` environment variable.
-
-Optional environment variables:
-
-- `OWNER_NUMBER` — owner number with country code, without `+` or spaces.
-- `PHONE_NUMBER` — automatically request a pairing code on startup.
-- `PAIRING_API_URL` or `PUBLIC_URL` — public URL used by the `.pair` command to
-  request a code from this deployment. Set it when the bot is not using the
-  default public URL.
-- `GIPHY_API_KEY` and other API keys — enable optional API-powered commands.
-
-Per-account owner commands:
-
-- `.mode public/private` — changes only the current WhatsApp session.
-- `.botname <name>` — changes the current session's bot name.
-- `.botdp <public-image-url>` — changes the current session's menu image URL.
-- `.ownernumber <country-code-number>` — changes the current session's owner number.
-- `.ownername <name>` — changes the current session's owner name.
-- `.description <text>` — changes the current session's bot description.
-
-### Existing session behavior
-
-If a number already has a saved session, the service only rejects that same number;
-other numbers can still pair normally. Use a different number or remove that
-number's session directory when re-linking it.
+node index.js
 
 ---
 
-### Step 3: Deploy Now
+☁️ Deploy on Hosting
 
-For further customization and setup guidance, click the button below:
+You can deploy MUZAMIL-XD on a Node.js-compatible hosting platform.
 
-<div align="center">
-  <a href="https://youtu.be/-oz_u1iMgf8">
-    <img src="https://img.shields.io/badge/Deploy Tutorial-dc3545?style=for-the-badge&logo=youtube" alt="YouTube Link"/>
-  </a>
-  <a href="https://bot-hosting.net/?aff=1068419752923508776">
-    <img src="https://img.shields.io/badge/Deploy on Panel-28a745?style=for-the-badge" alt="Deploy on Panel"/>
-  </a>
-</div>
+Railway
 
-### Deploy on VPS
+1. Fork the repository.
+2. Create a new Railway project.
+3. Deploy from your GitHub repository.
+4. Add the required environment variables.
+5. Start the service.
+6. Open the public URL and generate your pair code.
 
-<div align="center">
-  <a href="https://client.petrosky.io/aff.php?aff=394" target="_blank">
-    <img src="https://img.shields.io/badge/petrosky vps-0078E7?style=for-the-badge" alt="petrosky vps"/>
-  </a>
-</div>
+Recommended settings:
 
-### Deploy on Below Panel
-<div align="center">
-<a href="https://dashboard.katabump.com/auth/login#d6b7d6" target="_blank">
-  <img src="https://img.shields.io/badge/Katabump-D6B7D6?style=for-the-badge&logo=server&logoColor=black" alt="Katabump"/>
-</a>
-</div>
+Node.js: 20+
+Start Command: npm start
+Session Directory: /app/session
 
-### Join Us
-
-<div align="center">
-  <a href="https://t.me/+3QhFUZHx-nhhZmY1">
-    <img src="https://img.shields.io/badge/Join%20Telegram-0078E7?style=for-the-badge&logo=telegram&logoColor=white" alt="Join Telegram"/>
-  </a>
-  <a href="https://whatsapp.com/channel/0029Va90zAnIHphOuO8Msp3A">
-    <img src="https://img.shields.io/badge/Join%20WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Join WhatsApp"/>
-  </a>
-</div>
+«💾 For persistent sessions, use a persistent volume mounted at "/app/session", or configure the session directory according to your hosting provider.»
 
 ---
 
-## ⚙️ Features
+⚙️ Configuration
 
-- **Tag all group members** with the `.tagall` command
-- **Admin restricted usage** (Only group admins can use certain commands)
-- **Games** like Tic-Tac-Toe for interactive group engagement
-- **Text-to-Speech** with `.tts`
-- **Sticker creation** with `.sticker`
-- **Anti-link detection** for group safety
-- **Warn and manage group members** with admin control
+Optional environment variables may include:
 
----
+OWNER_NUMBER=923XXXXXXXXX
+PHONE_NUMBER=
+PAIRING_API_URL=
+PUBLIC_URL=
+GIPHY_API_KEY=
 
-## 📖 About
+Owner Commands
 
-The Knight WhatsApp Bot assists group admins by providing them with tools to efficiently manage large WhatsApp groups. The bot uses the Baileys library to interact with the WhatsApp Web API and supports multi-device features.
+.mode public
+.mode private
+.botname <name>
+.botdp <image-url>
+.ownernumber <number>
+.ownername <name>
+.description <text>
 
-It is lightweight and can be easily customized to add more commands as per your requirements. The bot runs in a Node.js environment and provides QR code-based authentication to link your WhatsApp account.
-
----
-
-## 🛠️ Setup & Installation
-
-### Prerequisites
-
-- Node.js installed on your system
-- Git installed (for cloning the repository)
-
-### Step-by-Step Setup
-
-1. **Clone the repository:**
-
-    ```bash
-    git clone https://github.com/mruniquehacker/Knightbot-MD.git
-    cd Knightbot-MD
-    ```
-
-2. **Install the dependencies:**
-
-    ```bash
-    npm install
-    ```
-
-3. **Run the bot:**
-
-    ```bash
-    node index.js
-    ```
-
-4. **Scan the QR code:**
-
-    Once the bot starts, a QR code will appear in the terminal. Scan this QR code using the Linked Devices feature in WhatsApp to connect your WhatsApp account with the bot.
+«Available configuration options depend on the current MUZAMIL-XD build.»
 
 ---
 
-## ☕ Support Me
+📂 Session Storage
 
-<div align="center">
+MUZAMIL-XD stores authentication credentials in the "session/" directory.
 
-<a href="https://buymeacoffee.com/mruniquehacker" target="_blank">
-  <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support%20Developer-FF813F?style=for-the-badge&logo=buy-me-a-coffee&logoColor=white" alt="Buy Me a Coffee">
-</a>
+Important:
+
+- Do not share your session files.
+- Do not upload session credentials to GitHub.
+- Add "session/" to ".gitignore".
+- Use persistent storage when deploying on hosting platforms.
+
+Example ".gitignore":
+
+node_modules/
+session/
+.env
+*.log
+
+---
+
+🛠️ Tech Stack
+
+- Node.js
+- Baileys
+- JavaScript
+- Axios
+- Various APIs
+- WhatsApp Multi-Device Protocol
+
+---
+
+📜 License
+
+This project is based on open-source software and third-party libraries.
+
+Please preserve the original licenses and credits of all libraries and source projects used in your build.
+
+If your repository includes an MIT License, refer to the "LICENSE" file for the complete terms.
+
+---
+
+🙌 Credits
+
+- MUZAMIL-XD — Bot branding and custom additions
+- TeamRedXhackers — Development / customization
+- Professor / Knight Bot — Original project inspiration and source credits, where applicable
+- Baileys Contributors — WhatsApp Web library
+- TechGod143 — Pair-code contribution, where applicable
+- Dgxeon — Pair-code contribution, where applicable
+
+«Please retain and update credits according to the actual source code and licenses used in your repository.»
+
+---
+
+⚠️ Disclaimer
+
+MUZAMIL-XD is an unofficial WhatsApp bot and is not affiliated with, authorized, maintained, sponsored, or endorsed by WhatsApp or Meta.
+
+- Use this software responsibly.
+- Do not spam users or groups.
+- Do not send unauthorized bulk messages.
+- Do not use the bot for illegal activities.
+- Keep your credentials and API keys private.
+- Account restrictions or bans may occur when using unofficial automation tools.
+
+The developers are not responsible for misuse, account restrictions, or any damage resulting from the use of this software.
+
+---
+
+⭐ Support MUZAMIL-XD
+
+If you find this project useful:
+
+- ⭐ Star the repository
+- 🍴 Fork the project
+- 🐛 Report bugs
+- 💡 Suggest new features
+- 📢 Share the project
+
+<div align="center">🔥 MUZAMIL-XD
+
+A Multi-Device WhatsApp Bot Developed By TeamRedXhackers
 
 </div>
-
-If you find this project helpful and want to support the developer, consider buying me a coffee! Your support helps maintain and improve this open-source project.
-
-<div align="center">
-
-<img src="https://raw.githubusercontent.com/mruniquehacker/Knightbot-MD/main/assets/bmc_qr.png" alt="Buy Me a Coffee QR Code" width="200">
-
-</div>
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](https://opensource.org/licenses/MIT) - see the [LICENSE](https://github.com/mruniquehacker/Knightbot-MD/blob/main/LICENSE) file for details.
-
----
-
-## 🙌 Contributions
-
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/mruniquehacker/Knightbot-MD/issues).
-
----
-
-## 🌟 Show your support
-
-If you like this project, please give it a [⭐️ star on GitHub](https://github.com/mruniquehacker/Knightbot)!
-
-
-## Credits
-
-- [Professor](https://github.com/mruniquehacker)
-- [Baileys](https://github.com/adiwajshing/Baileys)
-- [TechGod143](https://github.com/TechGod143) for pair code
-- [Dgxeon](https://github.com/Dgxeon) for pair code
-
----
-
-## ⚠️ Important Warning
-
-**Note:** This bot is created for educational purposes only. This is NOT an official WhatsApp bot. Using this bot may lead to your WhatsApp account being banned. Use it at your own risk. The developers will not be responsible for any consequences or account bans that may occur while using this bot.
-
-## 📝 Legal
-
-- This project is not affiliated with, authorized, maintained, sponsored or endorsed by WhatsApp or any of its affiliates or subsidiaries.
-- This is an independent and unofficial software. Use at your own risk.
-- Do not spam people with this bot.
-- Do not use this bot to send bulk messages or for illegal purposes.
-- The developers assume no liability and are not responsible for any misuse or damage caused by this program.
-
-### License
-This project is licensed under the MIT License. However, you must:
-- Use this software in compliance with all applicable laws and regulations
-- Include original license and copyright notices
-- Credit original authors
-- Not use for spam or malicious purposes
-
-## 📜 Copyright Notice
-
-Copyright (c) 2024 Professor. All rights reserved.
-
-This project contains code from various open source projects:
-- Baileys (MIT License)
-- Other libraries as listed in package.json
-
-## ✨ Muzamil-XD additions
-
-- `.antistatus on/off` enables or disables group status-mention moderation.
-- `.antistatusset warn`, `.antistatusset kick`, or `.antistatusset delete` selects the action.
-- `.chreact <WhatsApp channel post link> <emoji-list>` sends channel reactions through the configured API.
-
-The channel reaction endpoint and API key are configured directly in `commands/chreact.js` for this personal build. Keep the ZIP private because the key is included in the source.
