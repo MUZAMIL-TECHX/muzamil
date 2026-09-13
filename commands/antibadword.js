@@ -11,7 +11,9 @@ async function antibadwordCommand(sock, chatId, message, senderId, isSenderAdmin
         // Extract match from message
         const text = message.message?.conversation || 
                     message.message?.extendedTextMessage?.text || '';
-        const match = text.split(' ').slice(1).join(' ');
+        const tokens = text.trim().split(/\s+/);
+        let match = tokens.slice(1).join(' ');
+        if (tokens[0].toLowerCase() === '.antibadwordingset') match = `set ${match}`;
 
         await handleAntiBadwordCommand(sock, chatId, message, match);
     } catch (error) {
