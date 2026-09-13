@@ -165,6 +165,9 @@ const { antiVvCommand, handleAntiVv } = require('./commands/antivv');
 const { sosCommand, handleSosAction } = require('./commands/sos');
 const { handleAntiStatusCommand, handleAntiStatus } = require('./commands/antistatus');
 const chreactCommand = require('./commands/chreact');
+const getProfilePicture = require('./commands/getpp');
+const { indicatorsCommand, indicatorSetCommand, handleIndicators } = require('./commands/indicators');
+const { command: selfchatCommand, scopeCommand: selfchatScopeCommand, response: handleSelfChatResponse } = require('./commands/selfchat');
 
 // Global settings
 global.packname = settings.packname;
@@ -198,6 +201,8 @@ async function handleMessages(sock, messageUpdate, printLog) {
 
         // Handle autoread functionality
         await handleAutoread(sock, message);
+        // Best-effort read receipt mode configured by .indicator.
+        await handleIndicators(sock, message);
 
         // Store message for antidelete feature
         if (message.message) {
@@ -299,7 +304,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
         // Always run moderation in groups, regardless of mode
         if (isGroup) {
             if (userMessage) {
-                await handleBadwordDetection(sock, chatId, message, userMessage, senderId);
+                await handleBadwordDetection(sock, chatId, message, rawText || userMessage, senderId);
             }
             // Antilink checks message text internally, so run it even if userMessage is empty
             await Antilink(message, sock);
@@ -911,7 +916,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
             case userMessage === '.repo':
                 await githubCommand(sock, chatId, message);
                 break;
-            case userMessage.startsWith('.antibadword'):
+            case userMessage.startsWith('.antibadword') || userMessage.startsWith('.antibadwording'):
                 if (!isGroup) {
                     await sock.sendMessage(chatId, { text: 'This command can only be used in groups.', ...channelInfo }, { quoted: message });
                     return;
@@ -1079,6 +1084,21 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 break;
             case userMessage === '.setpp':
                 await setProfilePicture(sock, chatId, message);
+                break;
+            case userMessage === '.getpp' || userMessage.startsWith('.getpp '):
+                await getProfilePicture(sock, chatId, message, rawText);
+                break;
+            case userMessage === '.indicator' || userMessage.startsWith('.indicator '):
+                await indicatorsCommand(sock, chatId, message, rawText.slice(10));
+                break;
+            case userMessage === '.indicatorset' || userMessage.startsWith('.indicatorset '):
+                await indicatorSetCommand(sock, chatId, message, rawText.slice(13));
+                break;
+            case userMessage === '.selfchat' || userMessage.startsWith('.selfchat '):
+                await selfchatCommand(sock, chatId, message, rawText.slice(9));
+                break;
+            case userMessage === '.selfchatset' || userMessage.startsWith('.selfchatset '):
+                await selfchatScopeCommand(sock, chatId, message, rawText.slice(12));
                 break;
             case userMessage.startsWith('.setgdesc'):
                 {
@@ -1345,11 +1365,13 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 if (isGroup) {
                     // Handle non-command group messages
                     if (userMessage) {  // Make sure there's a message
+                        await handleSelfChatResponse(sock, chatId, message, senderId);
                         await handleChatbotResponse(sock, chatId, message, userMessage, senderId);
                     }
                     await handleTagDetection(sock, chatId, message, senderId);
                     await handleMentionDetection(sock, chatId, message);
                 }
+                if (!isGroup && userMessage) await handleSelfChatResponse(sock, chatId, message, senderId);
                 commandExecuted = false;
                 break;
         }
